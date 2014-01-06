@@ -41,7 +41,7 @@ class Require(currentModule: JMap[String, AnyRef] = utils.newRootModule)(implici
     m.put("id", path) // FIXME resolved path
     m.put("filename", path) // FIXME resolved path
 
-    engine.eval( s"""module.exports = "MODULE_$path";""", g) // TODO replace stub
+    engine.eval(s"""module.exports = "MODULE_$path";""", g) // TODO replace stub
 
     m.put("loaded", Boolean.box(true))
     currentModule.get("children").asInstanceOf[JList[AnyRef]].add(m)
