@@ -17,4 +17,6 @@ package object utils {
     sem.getEngineByName(name)
   }
 
+  def newRootModule = Require.freshModule(null)
+
 }

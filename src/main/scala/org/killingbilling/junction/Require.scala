@@ -1,31 +1,51 @@
 package org.killingbilling.junction
 
 import java.util.function.{Function => JFunction}
+import java.util.{Map => JMap, List => JList}
 import javax.script._
 
-class Require(implicit engine: ScriptEngine) extends JFunction[String, AnyRef] with (String => AnyRef) {
+import Require._
 
-  private def newBindings(): Bindings = {
+object Require {
+
+  def freshModule(currentModule: JMap[String, AnyRef]): JMap[String, AnyRef] = {
+    val m = new java.util.HashMap[String, AnyRef]
+    m.put("exports", new java.util.HashMap[String, AnyRef])
+    m.put("loaded", Boolean.box(false))
+    m.put("parent", currentModule)
+    m.put("children", new java.util.ArrayList())
+    m
+  }
+
+}
+
+class Require(currentModule: JMap[String, AnyRef] = utils.newRootModule)(implicit engine: ScriptEngine)
+  extends JFunction[String, AnyRef] with (String => AnyRef) {
+
+  currentModule.put("require", this)
+
+  private def freshModuleBindings(): (JMap[String, AnyRef], Bindings) = {
+    val m = freshModule(currentModule)
     val g = engine.createBindings()
 
-    g.put("require", new Require)
+    g.put("module", m)
+    g.put("require", new Require(m))
+    g.put("exports", m.get("exports"))
 
-    val exports = new java.util.HashMap[String, AnyRef]
-    g.put("exports", exports)
-
-    val module = new java.util.HashMap[String, AnyRef]
-    module.put("exports", exports)
-
-    g.put("module", module)
-
-    g
+    (m, g)
   }
 
   def apply(path: String): AnyRef = {
-    val bindings = newBindings()
-    // TODO replace stub
-    engine.eval(s"""module.exports = "MODULE_${path}_";""", bindings)
-    bindings.get("module").asInstanceOf[java.util.Map[String, AnyRef]].get("exports")
+    val (m, g) = freshModuleBindings()
+
+    m.put("id", path) // FIXME resolved path
+    m.put("filename", path) // FIXME resolved path
+
+    engine.eval( s"""module.exports = "MODULE_$path";""", g) // TODO replace stub
+
+    m.put("loaded", Boolean.box(true))
+    currentModule.get("children").asInstanceOf[JList[AnyRef]].add(m)
+    m.get("exports")
   }
 
 }
