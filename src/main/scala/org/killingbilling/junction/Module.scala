@@ -26,8 +26,11 @@ class Module(parent: Option[Module] = None)(implicit engine: ScriptEngine) {self
       m.exports.put("dummyID", path)
 
       m.id = path // TODO impl
+      m.filename = path // TODO impl
 
+      self.children.add(m)
       m.loaded = true
+
       m.exports
     }
 
@@ -37,10 +40,12 @@ class Module(parent: Option[Module] = None)(implicit engine: ScriptEngine) {self
 
   var id = ""
 
+  var filename = ""
+
   var loaded = false
 
   def getParent: Module = parent getOrElse null
 
-  val children: JList[Module] = new JArrayList() // TODO impl
+  val children: JList[Module] = new JArrayList()
 
 }
