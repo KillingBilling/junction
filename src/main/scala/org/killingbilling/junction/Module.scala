@@ -27,6 +27,7 @@ class Module(parent: Option[Module] = None)(implicit engine: ScriptEngine) {self
       // TODO resolve and load
       val g = engine.createBindings()
       g.put("global", engine.getBindings(ScriptContext.GLOBAL_SCOPE))
+      g.put("process", Process)
       g.put("exports", m.exports)
 
       engine.eval( s"""exports.dummyID = '$path';""", g)
