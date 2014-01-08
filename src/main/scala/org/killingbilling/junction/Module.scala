@@ -10,8 +10,6 @@ object Module {
 
   type JsObject = JMap[String, AnyRef]
 
-  trait Require extends JFunction[String, JsObject] with (String => JsObject)
-
 }
 
 @BeanInfo
@@ -21,7 +19,7 @@ class Module(parent: Option[Module] = None)(implicit engine: ScriptEngine) {self
 
   var exports: JsObject = new JHashMap()
 
-  private object _require extends Require {
+  private object _require extends JFunction[String, JsObject] with (String => JsObject) {
 
     def apply(path: String) = {
       val m = new Module(self)
@@ -40,7 +38,7 @@ class Module(parent: Option[Module] = None)(implicit engine: ScriptEngine) {self
 
   }
 
-  def getRequire: Require = _require
+  def getRequire: JFunction[String, JsObject] with (String => JsObject) = _require
 
   var id = ""
 
