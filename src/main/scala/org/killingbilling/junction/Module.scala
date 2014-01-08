@@ -18,6 +18,19 @@ object Module {
     context
   }
 
+  def initGlobals(module: Module, context: ScriptContext, rootContext: ScriptContext) {
+    val g = context.getBindings(GLOBAL_SCOPE)
+    g.put("global", rootContext.getBindings(GLOBAL_SCOPE))
+    g.put("process", Process) // global
+    val require = module.getRequire
+    //g.put("console", null) // global, require from resources/lib
+    //g.put("__filename", null)
+    //g.put("__dirname", null)
+    g.put("require", require)
+    g.put("module", module)
+    g.put("exports", module.exports)
+  }
+
 }
 
 @BeanInfo
@@ -25,7 +38,11 @@ class Module(parent: Option[Module] = None)(implicit engine: ScriptEngine) {self
 
   import Module._
 
-  private val rootContext: ScriptContext = parent map {_.rootContext} getOrElse newContext()
+  private val rootContext: ScriptContext = parent map {_.rootContext} getOrElse {
+    val context = newContext()
+    initGlobals(self, context, context)
+    context
+  }
 
   var exports: JsObject = new JHashMap()
 
@@ -35,16 +52,7 @@ class Module(parent: Option[Module] = None)(implicit engine: ScriptEngine) {self
       val module = new Module(self)
 
       val context = newContext()
-      val g = context.getBindings(GLOBAL_SCOPE)
-      g.put("global", rootContext.getBindings(GLOBAL_SCOPE))
-      g.put("process", Process) // global
-      val require = module.getRequire
-      //g.put("console", ???) // global, require from resources/lib
-      g.put("__filename", null)
-      g.put("__dirname", null)
-      g.put("require", require)
-      g.put("module", module)
-      g.put("exports", module.exports)
+      initGlobals(module, context, rootContext)
 
       engine.eval(s"exports.dummyID = '$path';", context) // TODO impl load
 
