@@ -28,6 +28,10 @@ class Module(parent: Option[Module] = None)(implicit engine: ScriptEngine) {self
       val g = engine.createBindings()
       g.put("global", engine.getBindings(ScriptContext.GLOBAL_SCOPE))
       g.put("process", Process)
+      val require = m.getRequire
+      g.put("console", require("console")) // TODO impl require from resources/lib
+      g.put("require", require)
+      g.put("module", m)
       g.put("exports", m.exports)
 
       engine.eval( s"""exports.dummyID = '$path';""", g)
