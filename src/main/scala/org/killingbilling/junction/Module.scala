@@ -54,13 +54,13 @@ class Module(parent: Option[Module] = None)(implicit engine: ScriptEngine) {self
       val module = new Module(self)
       val context = moduleContext(module, rootContext)
 
-      module.id = path // TODO impl
-      module.filename = path // TODO impl
+      module._id = path // TODO impl
+      module._filename = path // TODO impl
 
       engine.eval(s"exports.dummyID = '$path';", context) // TODO impl load
 
       self.children.add(module)
-      module.loaded = true
+      module._loaded = true
 
       module.exports
     }
@@ -73,11 +73,14 @@ class Module(parent: Option[Module] = None)(implicit engine: ScriptEngine) {self
 
   def getRequire: JFunction[String, JsObject] with (String => JsObject) = _require
 
-  var id = ""
+  private var _id: String = _
+  def getId = _id
 
-  var filename = ""
+  private var _filename: String = _
+  def getFilename = _filename
 
-  var loaded = false
+  private var _loaded = false
+  def isLoaded = _loaded
 
   def getParent: Module = parent getOrElse null
 
