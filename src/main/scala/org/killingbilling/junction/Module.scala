@@ -1,14 +1,22 @@
 package org.killingbilling.junction
 
-import javax.script.{ScriptContext, ScriptEngine}
-import scala.beans.BeanInfo
-import org.killingbilling.junction.utils._
 import java.util.function.{Function => JFunction}
 import java.util.{List => JList, ArrayList => JArrayList, Map => JMap, HashMap => JHashMap}
+import javax.script.ScriptContext._
+import javax.script.{ScriptContext, SimpleScriptContext, ScriptEngine}
+import org.killingbilling.junction.utils._
+import scala.beans.BeanInfo
 
 object Module {
 
   type JsObject = JMap[String, AnyRef]
+
+  def newContext()(implicit engine: ScriptEngine): ScriptContext = {
+    val context = new SimpleScriptContext
+    context.setBindings(engine.createBindings(), GLOBAL_SCOPE)
+    context.setBindings(engine.createBindings(), ENGINE_SCOPE)
+    context
+  }
 
 }
 
@@ -17,33 +25,36 @@ class Module(parent: Option[Module] = None)(implicit engine: ScriptEngine) {self
 
   import Module._
 
+  private val rootContext: ScriptContext = parent map {_.rootContext} getOrElse newContext()
+
   var exports: JsObject = new JHashMap()
 
   private object _require extends JFunction[String, JsObject] with (String => JsObject) {
 
     def apply(path: String) = {
-      val m = new Module(self)
+      val module = new Module(self)
 
-      val g = engine.createBindings()
-      g.put("global", ???) // global, actually the root module bindings TODO impl
+      val context = newContext()
+      val g = context.getBindings(GLOBAL_SCOPE)
+      g.put("global", rootContext.getBindings(GLOBAL_SCOPE))
       g.put("process", Process) // global
-      val require = m.getRequire
-      g.put("console", ???) // global  TODO impl, require from resources/lib
-      g.put("__filename", ???)
-      g.put("__dirname", ???)
+      val require = module.getRequire
+      //g.put("console", ???) // global, require from resources/lib
+      g.put("__filename", null)
+      g.put("__dirname", null)
       g.put("require", require)
-      g.put("module", m)
-      g.put("exports", m.exports)
+      g.put("module", module)
+      g.put("exports", module.exports)
 
-      engine.eval(s"""exports.dummyID = '$path';""", g) // TODO impl load
+      engine.eval(s"exports.dummyID = '$path';", context) // TODO impl load
 
-      m.id = path // TODO impl
-      m.filename = path // TODO impl
+      module.id = path // TODO impl
+      module.filename = path // TODO impl
 
-      self.children.add(m)
-      m.loaded = true
+      self.children.add(module)
+      module.loaded = true
 
-      m.exports
+      module.exports
     }
 
     def resolve(path: String): String = ???
