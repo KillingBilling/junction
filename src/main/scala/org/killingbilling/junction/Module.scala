@@ -54,10 +54,10 @@ class Module(parent: Option[Module] = None)(implicit engine: ScriptEngine) {self
       val module = new Module(self)
       val context = moduleContext(module, rootContext)
 
-      engine.eval(s"exports.dummyID = '$path';", context) // TODO impl load
-
       module.id = path // TODO impl
       module.filename = path // TODO impl
+
+      engine.eval(s"exports.dummyID = '$path';", context) // TODO impl load
 
       self.children.add(module)
       module.loaded = true
