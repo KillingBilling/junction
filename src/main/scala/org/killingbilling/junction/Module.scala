@@ -18,7 +18,13 @@ object Module {
     context
   }
 
-  def initGlobals(module: Module, context: ScriptContext, rootContext: ScriptContext) {
+  def moduleContext(module: Module, root: Option[ScriptContext] = None)(implicit engine: ScriptEngine): ScriptContext = {
+    val context = newContext()
+    initGlobals(module, context, root getOrElse context)
+    context
+  }
+
+  private def initGlobals(module: Module, context: ScriptContext, rootContext: ScriptContext) {
     val g = context.getBindings(GLOBAL_SCOPE)
     g.put("global", rootContext.getBindings(GLOBAL_SCOPE))
     g.put("process", Process) // global
@@ -38,11 +44,7 @@ class Module(parent: Option[Module] = None)(implicit engine: ScriptEngine) {self
 
   import Module._
 
-  private val rootContext: ScriptContext = parent map {_.rootContext} getOrElse {
-    val context = newContext()
-    initGlobals(self, context, context)
-    context
-  }
+  private val rootContext: ScriptContext = parent map {_.rootContext} getOrElse moduleContext(self)
 
   var exports: JsObject = new JHashMap()
 
@@ -50,9 +52,7 @@ class Module(parent: Option[Module] = None)(implicit engine: ScriptEngine) {self
 
     def apply(path: String) = {
       val module = new Module(self)
-
-      val context = newContext()
-      initGlobals(module, context, rootContext)
+      val context = moduleContext(module, rootContext)
 
       engine.eval(s"exports.dummyID = '$path';", context) // TODO impl load
 
