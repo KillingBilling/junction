@@ -1,7 +1,7 @@
 package org.killingbilling.junction
 
 import java.util.function
-import javax.script.ScriptEngineManager
+import javax.script.{ScriptEngine, ScriptEngineManager}
 
 package object utils {
 
@@ -19,6 +19,6 @@ package object utils {
     sem.getEngineByName(name)
   }
 
-  def newRootModule = Require.freshModule(null)
+  def newRootModule(implicit engine: ScriptEngine) = new Module()
 
 }

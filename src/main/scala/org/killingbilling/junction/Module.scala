@@ -7,7 +7,11 @@ import java.util.function.{Function => JFunction}
 import java.util.{List => JList, ArrayList => JArrayList, Map => JMap, HashMap => JHashMap}
 
 object Module {
+
   type JsObject = JMap[String, AnyRef]
+
+  trait Require extends JFunction[String, JsObject] with (String => JsObject)
+
 }
 
 @BeanInfo
@@ -17,7 +21,7 @@ class Module(parent: Option[Module] = None)(implicit engine: ScriptEngine) {self
 
   var exports: JsObject = new JHashMap()
 
-  private object _require extends JFunction[String, JsObject] with (String => JsObject) {
+  private object _require extends Require {
 
     def apply(path: String) = {
       val m = new Module(self)
@@ -36,7 +40,7 @@ class Module(parent: Option[Module] = None)(implicit engine: ScriptEngine) {self
 
   }
 
-  def getRequire: JFunction[String, JsObject] with (String => JsObject) = _require
+  def getRequire: Require = _require
 
   var id = ""
 
