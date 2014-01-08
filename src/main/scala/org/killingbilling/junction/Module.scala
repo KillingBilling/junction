@@ -6,15 +6,20 @@ import org.killingbilling.junction.utils._
 import java.util.function.{Function => JFunction}
 import java.util.{List => JList, ArrayList => JArrayList, Map => JMap, HashMap => JHashMap}
 
+object Module {
+  type JsObject = JMap[String, AnyRef]
+}
+
 @BeanInfo
-class Module(parent: Option[Module] = None)(implicit engine: ScriptEngine) {
-  self =>
+class Module(parent: Option[Module] = None)(implicit engine: ScriptEngine) {self =>
 
-  var exports: JMap[String, AnyRef] = new JHashMap()
+  import Module._
 
-  private object _require extends JFunction[String, AnyRef] with (String => AnyRef) {
+  var exports: JsObject = new JHashMap()
 
-    def apply(path: String): AnyRef = {
+  private object _require extends JFunction[String, JsObject] with (String => JsObject) {
+
+    def apply(path: String) = {
       val m = new Module(self)
 
       // TODO resolve and load
@@ -28,14 +33,14 @@ class Module(parent: Option[Module] = None)(implicit engine: ScriptEngine) {
 
   }
 
-  def getRequire: JFunction[String, AnyRef] with (String => AnyRef) = _require
+  def getRequire: JFunction[String, JsObject] with (String => JsObject) = _require
 
   var id = ""
 
   var loaded = false
 
-  def getParent = parent getOrElse null
+  def getParent: Module = parent getOrElse null
 
-  val children: JList[AnyRef] = new JArrayList() // TODO impl
+  val children: JList[Module] = new JArrayList() // TODO impl
 
 }
