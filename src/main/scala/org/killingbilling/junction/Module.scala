@@ -25,10 +25,10 @@ class Module(parent: Option[Module] = None)(implicit engine: ScriptEngine) {self
       val m = new Module(self)
 
       val g = engine.createBindings()
-      g.put("global", engine.getBindings(ScriptContext.GLOBAL_SCOPE))
-      g.put("process", Process)
+      g.put("global", ???) // global, actually the root module bindings TODO impl
+      g.put("process", Process) // global
       val require = m.getRequire
-      g.put("console", require("console")) // TODO impl require from resources/lib
+      g.put("console", ???) // global  TODO impl, require from resources/lib
       g.put("__filename", ???)
       g.put("__dirname", ???)
       g.put("require", require)
