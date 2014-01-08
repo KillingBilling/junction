@@ -1,6 +1,6 @@
 package org.killingbilling.junction
 
-import javax.script.ScriptEngine
+import javax.script.{ScriptContext, ScriptEngine}
 import scala.beans.BeanInfo
 import org.killingbilling.junction.utils._
 import java.util.function.{Function => JFunction}
@@ -25,7 +25,11 @@ class Module(parent: Option[Module] = None)(implicit engine: ScriptEngine) {self
       val m = new Module(self)
 
       // TODO resolve and load
-      m.exports.put("dummyID", path)
+      val g = engine.createBindings()
+      g.put("global", engine.getBindings(ScriptContext.GLOBAL_SCOPE))
+      g.put("exports", m.exports)
+
+      engine.eval( s"""exports.dummyID = '$path';""", g)
 
       m.id = path // TODO impl
       m.filename = path // TODO impl
