@@ -24,17 +24,18 @@ class Module(parent: Option[Module] = None)(implicit engine: ScriptEngine) {self
     def apply(path: String) = {
       val m = new Module(self)
 
-      // TODO resolve and load
       val g = engine.createBindings()
       g.put("global", engine.getBindings(ScriptContext.GLOBAL_SCOPE))
       g.put("process", Process)
       val require = m.getRequire
       g.put("console", require("console")) // TODO impl require from resources/lib
+      g.put("__filename", ???)
+      g.put("__dirname", ???)
       g.put("require", require)
       g.put("module", m)
       g.put("exports", m.exports)
 
-      engine.eval( s"""exports.dummyID = '$path';""", g)
+      engine.eval(s"""exports.dummyID = '$path';""", g) // TODO impl load
 
       m.id = path // TODO impl
       m.filename = path // TODO impl
@@ -44,6 +45,10 @@ class Module(parent: Option[Module] = None)(implicit engine: ScriptEngine) {self
 
       m.exports
     }
+
+    def resolve(path: String): String = ???
+
+    def getCache = ???
 
   }
 
