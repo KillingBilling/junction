@@ -12,6 +12,11 @@ object Module {
 
   type JsObject = JMap[String, AnyRef]
 
+  trait Require {
+    def resolve(path: String): String
+    def getCache: JMap[String, Module]
+  }
+
   def newContext()(implicit engine: ScriptEngine): ScriptContext = {
     val context = new SimpleScriptContext
     context.setBindings(engine.createBindings(), GLOBAL_SCOPE)
@@ -51,7 +56,7 @@ class Module(parent: Option[Module] = None, val id: String = "[root]")(implicit 
 
   var exports: JsObject = new JHashMap()
 
-  private object _require extends JFunction[String, JsObject] with (String => JsObject) {
+  private object _require extends JFunction[String, JsObject] with (String => JsObject) with Require {
 
     def apply(path: String) = {
       val filename = resolve(path)
@@ -88,7 +93,7 @@ class Module(parent: Option[Module] = None, val id: String = "[root]")(implicit 
   
   private val _cache: JMap[String, Module] = parent map {_._cache} getOrElse new JHashMap()
 
-  def getRequire: JFunction[String, JsObject] with (String => JsObject) = _require
+  def getRequire: JFunction[String, JsObject] with (String => JsObject) with Require = _require
 
   val filename: String = new File(id).getCanonicalPath
   private val _dir: File = new File(filename).getParentFile
