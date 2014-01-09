@@ -6,6 +6,7 @@ import javax.script.ScriptContext._
 import javax.script.{ScriptContext, SimpleScriptContext, ScriptEngine}
 import org.killingbilling.junction.utils._
 import scala.beans.BeanInfo
+import java.io.File
 
 object Module {
 
@@ -42,7 +43,7 @@ object Module {
 }
 
 @BeanInfo
-class Module(parent: Option[Module] = None)(implicit engine: ScriptEngine) {self =>
+class Module(parent: Option[Module] = None, val id: String = "[root]")(implicit engine: ScriptEngine) {self =>
 
   import Module._
 
@@ -53,33 +54,33 @@ class Module(parent: Option[Module] = None)(implicit engine: ScriptEngine) {self
   private object _require extends JFunction[String, JsObject] with (String => JsObject) {
 
     def apply(path: String) = {
-      val module = new Module(self)
-      val context = moduleContext(module, rootContext)
+      val id = resolve(path)
 
-      module._id = path // TODO impl
-      module._filename = path // TODO impl
+      def loadModule(id: String) = {
+        val module = new Module(self, id)
+        val context = moduleContext(module, rootContext)
 
-      engine.eval(s"exports.dummyID = '$path';", context) // TODO impl load
+        engine.eval(s"exports.dummyID = '$id';", context) // TODO impl load
 
-      self.children.add(module)
-      module._loaded = true
+        self.children.add(module)
+        module._loaded = true
+        module
+      }
+
+      val module = loadModule(id)
 
       module.exports
     }
 
-    def resolve(path: String): String = ???
+    def resolve(path: String): String = ??? // TODO impl
 
-    def getCache = ???
+    def getCache: JMap[String, Module] = ??? // global, map id -> module
 
   }
 
   def getRequire: JFunction[String, JsObject] with (String => JsObject) = _require
 
-  private var _id: String = _
-  def getId = _id
-
-  private var _filename: String = _
-  def getFilename = _filename
+  val filename = id
 
   private var _loaded = false
   def isLoaded = _loaded
