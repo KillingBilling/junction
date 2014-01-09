@@ -52,7 +52,7 @@ class Module(parent: Option[Module] = None, val id: String = "[root]")(implicit 
 
   import Module._
 
-  private val rootContext: ScriptContext = parent map {_.rootContext} getOrElse moduleContext(self)
+  private lazy val rootContext: ScriptContext = parent map {_.rootContext} getOrElse moduleContext(self)
 
   var exports: JsObject = new JHashMap()
 
