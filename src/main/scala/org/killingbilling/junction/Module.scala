@@ -1,12 +1,12 @@
 package org.killingbilling.junction
 
+import java.io.{FileReader, File}
 import java.util.function.{Function => JFunction}
 import java.util.{List => JList, ArrayList => JArrayList, Map => JMap, HashMap => JHashMap}
 import javax.script.ScriptContext._
 import javax.script.{ScriptContext, SimpleScriptContext, ScriptEngine}
 import org.killingbilling.junction.utils._
 import scala.beans.BeanInfo
-import java.io.File
 
 object Module {
 
@@ -24,7 +24,8 @@ object Module {
     context
   }
 
-  def moduleContext(module: Module, root: Option[ScriptContext] = None)(implicit engine: ScriptEngine): ScriptContext = {
+  def moduleContext(module: Module, root: Option[ScriptContext] = None)
+        (implicit engine: ScriptEngine): ScriptContext = {
     val context = newContext()
     initGlobals(module, context, root getOrElse context)
     context
@@ -34,11 +35,10 @@ object Module {
     val g = context.getBindings(GLOBAL_SCOPE)
     g.put("global", rootContext.getBindings(GLOBAL_SCOPE)) // global
     g.put("process", Process) // global
-    val require = module.getRequire
     //g.put("console", null) // global, require from resources/lib // TODO impl
     //g.put("Buffer", null) // global // TODO impl
 
-    g.put("require", require)
+    g.put("require", module._require)
     g.put("__filename", module.filename)
     g.put("__dirname", module._dir.toString)
     g.put("module", module)
@@ -59,41 +59,58 @@ class Module(parent: Option[Module] = None, val id: String = "[root]")(implicit 
   private object _require extends JFunction[String, JsObject] with (String => JsObject) with Require {
 
     def apply(path: String) = {
-      val filename = resolve(path)
-      val module = Option(_cache.get(filename)) getOrElse loadModule(filename)
+      val module = _resolve(path) map {
+        case (isCore, resolved) =>
+          if (isCore) _coreModule(resolved)
+          else Option(_cache.get(resolved)) getOrElse _loadModule(resolved)
+      } getOrElse {
+        throw new RuntimeException(s"Error: Cannot find module '$path'")
+      }
       module.exports
     }
 
-    def resolve(path: String): String = {
-      (if (path.startsWith(".") || path.startsWith("/")) {
+    def resolve(path: String): String = _resolve(path) map {_._2} getOrElse {
+      throw new RuntimeException(s"Error: Cannot find module '$path'")
+    }
+
+    private def _resolve(path: String): Option[(Boolean, String)] = {
+      if (path.startsWith(".") || path.startsWith("/")) {
         val file = new File(path)
         val filename = (if (file.isAbsolute) file else new File(_dir, path)).getCanonicalPath
         List("", ".js", ".json") collectFirst {
-          case ext if new File(filename + ext).exists() => filename + ext
+          case ext if new File(filename + ext).exists() => (false, filename + ext)
         }
-      } else None) getOrElse {
-        throw new RuntimeException(s"Module $path does not exist!")
-      }
+      } else if (isCore(path)) (true, path) else inNodeModules(path) map {false -> _}
     }
+
+    private def inNodeModules(path: String): Option[String] = ??? // TODO impl
 
     def getCache: JMap[String, Module] = _cache // global, map: id -> module
 
-    private def loadModule(path: String) = {
-      val module = new Module(self, path)
+    private def _loadModule(resolved: String): Module = {
+      val module = new Module(self, resolved)
+      _cache.put(resolved, module)
       val context = moduleContext(module, rootContext)
 
-      engine.eval(s"exports.dummyID = '$path';", context) // TODO impl load
+      engine.eval(new FileReader(resolved), context)
 
       self.children.add(module)
       module._loaded = true
       module
     }
 
+    private def isCore(path: String): Boolean =
+      List(
+        "_linklist", "process", "console", "util", "sys", "punycode", "url", "querystring", "console"
+      ).contains(path)
+
+    private def _coreModule(path: String): Module = ??? // TODO impl
+
   }
-  
+
   private val _cache: JMap[String, Module] = parent map {_._cache} getOrElse new JHashMap()
 
-  def getRequire: JFunction[String, JsObject] with (String => JsObject) with Require = _require
+  def getRequire: JFunction[String, JsObject] with (String => JsObject) = _require
 
   val filename: String = new File(id).getCanonicalPath
   private val _dir: File = new File(filename).getParentFile
