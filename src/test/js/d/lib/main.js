@@ -1,1 +1,3 @@
-require('./sub')
+echo('main');
+echo(require('./sub'));
+module.exports = require('./sub');

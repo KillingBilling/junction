@@ -42,7 +42,7 @@ object Module {
     g.put("__filename", module.filename)
     g.put("__dirname", module._dir.toString)
     g.put("module", module)
-    g.put("exports", module.exports)
+    g.put("exports", module._exports)
   }
 
 }
@@ -54,7 +54,9 @@ class Module(parent: Option[Module] = None, val id: String = "[root]")(implicit 
 
   private lazy val rootContext: ScriptContext = parent map {_.rootContext} getOrElse moduleContext(self)
 
-  var exports: JsObject = new JHashMap()
+  private var _exports: JsObject = new JHashMap()
+  def getExports: JsObject = _exports
+  def setExports(o: JsObject) {_exports = o}
 
   private object _require extends JFunction[String, JsObject] with (String => JsObject) with Require {
 
@@ -66,7 +68,7 @@ class Module(parent: Option[Module] = None, val id: String = "[root]")(implicit 
       } getOrElse {
         throw new RuntimeException(s"Error: Cannot find module '$path'")
       }
-      module.exports
+      module._exports
     }
 
     def resolve(path: String): String = _resolve(path) map {_._2} getOrElse {
