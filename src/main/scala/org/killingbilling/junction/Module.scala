@@ -27,11 +27,11 @@ object Module {
   private def initGlobals(module: Module, context: ScriptContext, rootContext: ScriptContext) {
     val g = context.getBindings(GLOBAL_SCOPE)
     g.put("global", rootContext.getBindings(GLOBAL_SCOPE))
-    g.put("process", Process) // global
+    g.put("process", Process)
     val require = module.getRequire
-    //g.put("console", null) // global, require from resources/lib
-    //g.put("__filename", null)
-    //g.put("__dirname", null)
+    //g.put("console", null) // global, require from resources/lib // TODO impl
+    //g.put("__filename", null) // TODO impl
+    //g.put("__dirname", null) // TODO impl
     g.put("require", require)
     g.put("module", module)
     g.put("exports", module.exports)
