@@ -60,13 +60,14 @@ class Module(parent: Option[Module] = None, val id: String = "[root]")(implicit 
     }
 
     def resolve(path: String): String = {
-      val file = new File(path)
-      val filename = (if (file.isAbsolute) file else new File(_dir, path)).getCanonicalPath
-      val extensions = List("", ".js", ".json")
-      extensions collectFirst {
-        case ext if new File(filename + ext).exists() => filename + ext
-      } getOrElse {
-        throw new RuntimeException(s"Module $filename does not exist!")
+      (if (path.startsWith(".") || path.startsWith("/")) {
+        val file = new File(path)
+        val filename = (if (file.isAbsolute) file else new File(_dir, path)).getCanonicalPath
+        List("", ".js", ".json") collectFirst {
+          case ext if new File(filename + ext).exists() => filename + ext
+        }
+      } else None) getOrElse {
+        throw new RuntimeException(s"Module $path does not exist!")
       }
     }
 
