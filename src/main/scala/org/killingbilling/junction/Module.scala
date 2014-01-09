@@ -34,8 +34,8 @@ object Module {
     //g.put("Buffer", null) // global // TODO impl
 
     g.put("require", require)
-    //g.put("__filename", null) // TODO impl
-    //g.put("__dirname", null) // TODO impl
+    g.put("__filename", module.filename)
+    g.put("__dirname", module._dir.toString)
     g.put("module", module)
     g.put("exports", module.exports)
   }
@@ -54,33 +54,43 @@ class Module(parent: Option[Module] = None, val id: String = "[root]")(implicit 
   private object _require extends JFunction[String, JsObject] with (String => JsObject) {
 
     def apply(path: String) = {
-      val id = resolve(path)
-
-      def loadModule(id: String) = {
-        val module = new Module(self, id)
-        val context = moduleContext(module, rootContext)
-
-        engine.eval(s"exports.dummyID = '$id';", context) // TODO impl load
-
-        self.children.add(module)
-        module._loaded = true
-        module
-      }
-
-      val module = loadModule(id)
-
+      val filename = resolve(path)
+      val module = Option(_cache.get(filename)) getOrElse loadModule(filename)
       module.exports
     }
 
-    def resolve(path: String): String = ??? // TODO impl
+    def resolve(path: String): String = {
+      val file = new File(path)
+      val filename = (if (file.isAbsolute) file else new File(_dir, path)).getCanonicalPath
+      val extensions = List("", ".js", ".json")
+      extensions collectFirst {
+        case ext if new File(filename + ext).exists() => filename + ext
+      } getOrElse {
+        throw new RuntimeException(s"Module $filename does not exist!")
+      }
+    }
 
-    def getCache: JMap[String, Module] = ??? // global, map id -> module
+    def getCache: JMap[String, Module] = _cache // global, map: id -> module
+
+    private def loadModule(path: String) = {
+      val module = new Module(self, path)
+      val context = moduleContext(module, rootContext)
+
+      engine.eval(s"exports.dummyID = '$path';", context) // TODO impl load
+
+      self.children.add(module)
+      module._loaded = true
+      module
+    }
 
   }
+  
+  private val _cache: JMap[String, Module] = parent map {_._cache} getOrElse new JHashMap()
 
   def getRequire: JFunction[String, JsObject] with (String => JsObject) = _require
 
-  val filename = id
+  val filename: String = new File(id).getCanonicalPath
+  private val _dir: File = new File(filename).getParentFile
 
   private var _loaded = false
   def isLoaded = _loaded
