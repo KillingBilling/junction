@@ -60,9 +60,8 @@ class Module(parent: Option[Module] = None, val id: String = "[root]")(implicit 
 
     def apply(path: String) = {
       val module = _resolve(path) map {
-        case (isCore, resolved) =>
-          if (isCore) _coreModule(resolved)
-          else Option(_cache.get(resolved)) getOrElse _loadModule(resolved)
+        case (true, resolved) => _coreModule(resolved)
+        case (false, resolved) => Option(_cache.get(resolved)) getOrElse _loadModule(resolved)
       } getOrElse {
         throw new RuntimeException(s"Error: Cannot find module '$path'")
       }
@@ -76,9 +75,10 @@ class Module(parent: Option[Module] = None, val id: String = "[root]")(implicit 
     private def _resolve(path: String): Option[(Boolean, String)] = {
       if (path.startsWith(".") || path.startsWith("/")) {
         val file = new File(path)
-        val filename = (if (file.isAbsolute) file else new File(_dir, path)).getCanonicalPath
-        List("", ".js", ".json") collectFirst {
-          case ext if new File(filename + ext).exists() => (false, filename + ext)
+        val absPath = (if (file.isAbsolute) file else new File(_dir, path)).getCanonicalPath
+        List("", ".js", ".json") map {ext => new File(absPath + ext)} collectFirst {
+          case f if f.isFile => (false, f.toString)
+          case f if f.isDirectory => ??? // TODO impl
         }
       } else if (isCore(path)) (true, path) else inNodeModules(path) map {false -> _}
     }

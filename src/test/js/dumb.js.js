@@ -1,1 +1,1 @@
-exports.dummyID = 'dummy.js.js';
+module.exports = require('lib/dummy');
