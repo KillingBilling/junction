@@ -10,8 +10,6 @@ import scala.beans.BeanInfo
 
 object Module {
 
-  type JsObject = JMap[String, AnyRef]
-
   trait Require {
     def resolve(path: String): String
     def getCache: JMap[String, Module]
@@ -54,11 +52,11 @@ class Module(parent: Option[Module] = None, val id: String = "[root]")(implicit 
 
   private lazy val rootContext: ScriptContext = parent map {_.rootContext} getOrElse moduleContext(self)
 
-  private var _exports: JsObject = new JHashMap()
-  def getExports: JsObject = _exports
-  def setExports(o: JsObject) {_exports = o}
+  private var _exports: AnyRef = new JHashMap()
+  def getExports: AnyRef = _exports
+  def setExports(o: AnyRef) {_exports = o}
 
-  private object _require extends JFunction[String, JsObject] with (String => JsObject) with Require {
+  private object _require extends JFunction[String, AnyRef] with Require {
 
     def apply(path: String) = {
       val module = _resolve(path) map {
@@ -112,7 +110,7 @@ class Module(parent: Option[Module] = None, val id: String = "[root]")(implicit 
 
   private val _cache: JMap[String, Module] = parent map {_._cache} getOrElse new JHashMap()
 
-  def getRequire: JFunction[String, JsObject] with (String => JsObject) = _require
+  def getRequire: JFunction[String, AnyRef] = _require
 
   val filename: String = new File(id).getCanonicalPath
   private val _dir: File = new File(filename).getParentFile

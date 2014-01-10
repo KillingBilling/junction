@@ -1,2 +1,1 @@
-echo('sub');
-exports.dummyID = 'SUB';
+module.exports = function(s) {return "(arg: " + s + ")"};
