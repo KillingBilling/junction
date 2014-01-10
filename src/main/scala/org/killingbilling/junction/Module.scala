@@ -38,7 +38,7 @@ object Module {
 
     g.put("require", module._require)
     g.put("__filename", module.filename)
-    g.put("__dirname", module._dir.toString)
+    g.put("__dirname", module._dir.getPath)
     g.put("module", module)
     g.put("exports", module._exports)
   }
@@ -77,13 +77,19 @@ class Module(parent: Option[Module] = None, val id: String = "[root]")(implicit 
         val file = new File(path)
         val absPath = (if (file.isAbsolute) file else new File(_dir, path)).getCanonicalPath
         List("", ".js", ".json") map {ext => new File(absPath + ext)} collectFirst {
-          case f if f.isFile => (false, f.toString)
+          case f if f.isFile => (false, f.getPath)
           case f if f.isDirectory => ??? // TODO impl
         }
-      } else if (isCore(path)) (true, path) else inNodeModules(path) map {false -> _}
+      } else if (isCore(path)) (true, path) else inNodeModules(path)(_dir)
     }
 
-    private def inNodeModules(path: String): Option[String] = ??? // TODO impl
+    private def inNodeModules(path: String)(dir: File): Option[(Boolean, String)] = {
+      if (dir == null) None
+      else _resolve(new File(new File(dir, "node_modules"), path).getPath) match {
+        case s@Some(_) => s
+        case None => inNodeModules(path)(dir.getParentFile)
+      }
+    }
 
     def getCache: JMap[String, Module] = _cache // global, map: id -> module
 
