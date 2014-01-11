@@ -16,7 +16,7 @@ object ModuleSpec {
   assert(js != null, "ENGINE SHOULD NOT BE NULL") // FIXME fails in SBT
 
   val rootModule = new Module()
-  val require = rootModule._require
+  val require = rootModule.getRequire
 
   val workDir = Paths.get(".").toAbsolutePath.normalize()
 

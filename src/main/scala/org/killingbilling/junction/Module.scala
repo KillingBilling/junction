@@ -60,7 +60,7 @@ class Module(parent: Option[Module] = None, val id: String = "[root]")(implicit 
   def getExports: AnyRef = _exports
   def setExports(o: AnyRef) {_exports = o}
 
-  private[junction] object _require extends JFunction[String, AnyRef] with Require {
+  private object _require extends JFunction[String, AnyRef] with Require {
 
     def apply(path: String) = {
       val module = _resolve(path)(_dir) map {
@@ -150,7 +150,7 @@ class Module(parent: Option[Module] = None, val id: String = "[root]")(implicit 
   private val _cache: JMap[String, Module] = parent map {_._cache} getOrElse new JHashMap()
   private val _core: JMap[String, Module] = parent map {_._core} getOrElse new JHashMap()
 
-  def getRequire: JFunction[String, AnyRef] = _require
+  def getRequire: JFunction[String, AnyRef] with Require = _require
 
   val filename: String = new File(id).getCanonicalPath
   private val _dir: File = new File(filename).getParentFile
