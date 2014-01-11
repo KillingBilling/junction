@@ -62,7 +62,7 @@ class Module(parent: Option[Module] = None, val id: String = "[root]")(implicit 
   private[junction] object _require extends JFunction[String, AnyRef] with Require {
 
     def apply(path: String) = {
-      val module = _resolve(path) map {
+      val module = _resolve(path)(_dir) map {
         case (true, resolved) => _coreModule(resolved)
         case (false, resolved) => Option(_cache.get(resolved)) getOrElse _loadModule(resolved)
       } getOrElse {
@@ -71,24 +71,32 @@ class Module(parent: Option[Module] = None, val id: String = "[root]")(implicit 
       module._exports
     }
 
-    def resolve(path: String): String = _resolve(path) map {_._2} getOrElse {
+    def resolve(path: String): String = _resolve(path)(_dir) map {_._2} getOrElse {
       throw new RuntimeException(s"Error: Cannot find module '$path'")
     }
 
-    private def _resolve(path: String): Option[(Boolean, String)] = {
+    private def _resolve(path: String)(dir: File): Option[(Boolean, String)] = {
       if (path.startsWith(".") || path.startsWith("/")) {
         val file = new File(path)
-        val absPath = (if (file.isAbsolute) file else new File(_dir, path)).getCanonicalPath
-        List("", ".js", ".json") map {ext => new File(absPath + ext)} collectFirst {
-          case f if f.isFile => (false, f.getPath)
-          case f if f.isDirectory => ??? // TODO impl
-        }
-      } else if (isCore(path)) (true, path) else inNodeModules(path)(_dir)
+        val absPath = (if (file.isAbsolute) file else new File(dir, path)).getCanonicalPath
+        (List("", ".js", ".json") map {ext => new File(absPath + ext)} collectFirst {
+          case f if f.isFile => Some(false -> f.getPath)
+          case f if f.isDirectory => resolveDir(f)
+        }).flatten
+      } else if (isCore(path)) (true, path) else inNodeModules(path)(dir)
+    }
+
+    private def resolveDir(dir: File): Option[(Boolean, String)] = {
+      val main = Try {
+        val opt = JSON.parseFull(Source.fromFile(new File(dir, "package.json")).mkString)
+        opt.get.asInstanceOf[Map[String, String]]("main")
+      }.toOption getOrElse "./index.js"
+      _resolve(main)(dir)
     }
 
     private def inNodeModules(path: String)(dir: File): Option[(Boolean, String)] = {
       if (dir == null) None
-      else _resolve(new File(new File(dir, "node_modules"), path).getPath) match {
+      else _resolve(new File(new File(dir, "node_modules"), path).getPath)(dir) match {
         case s@Some(_) => s
         case None => inNodeModules(path)(dir.getParentFile)
       }

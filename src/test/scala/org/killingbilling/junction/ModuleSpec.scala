@@ -30,6 +30,8 @@ class ModuleSpec extends FreeSpec with Matchers {
   "require.resolve(): " in {
     require.resolve("lib/dummy") shouldBe resolvedPath("./node_modules/lib/dummy.js")
     require.resolve("./src/test/js/dumb.js") shouldBe resolvedPath("./src/test/js/dumb.js.js")
+    require.resolve("./src/test/js/d") shouldBe resolvedPath("./src/test/js/d/lib/main.js")
+    require.resolve("./src/test/js/d.js") shouldBe resolvedPath("./src/test/js/d.js/index.js")
   }
 
   "require(): " in {
