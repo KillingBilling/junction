@@ -133,7 +133,7 @@ class Module(parent: Option[Module] = None, val id: String = "[root]")(implicit 
 
     private def isCore(path: String): Boolean =
       List(
-        "_linklist", "process", "console", "util", "sys", "punycode", "url", "querystring", "console"
+        "_linklist", "console", "util", "sys", "punycode", "url", "querystring"
       ).contains(path)
 
     private def _coreModule(path: String): Module = ??? // TODO impl
