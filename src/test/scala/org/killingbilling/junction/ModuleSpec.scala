@@ -2,6 +2,7 @@ package org.killingbilling.junction
 
 import java.lang.{Double => JDouble}
 import java.nio.file.Paths
+import java.util.{List => JList, Map => JMap}
 import org.killingbilling.junction.utils._
 import org.scalatest.{Matchers, FreeSpec}
 
@@ -18,8 +19,8 @@ object ModuleSpec {
 
   def resolvedPath(s: String) = workDir.resolve(s).normalize().toString
 
-  def jsObject(o: Map[String, AnyRef]): java.util.Map[String, AnyRef] = o: java.util.Map[String, AnyRef]
-  def jsArray(o: List[AnyRef]): java.util.List[AnyRef] = o: java.util.List[AnyRef]
+  def jsObject(o: Map[String, AnyRef]): JMap[String, AnyRef] = o: JMap[String, AnyRef]
+  def jsArray(o: List[AnyRef]): JList[AnyRef] = o: JList[AnyRef]
 
 }
 
@@ -40,6 +41,14 @@ class ModuleSpec extends FreeSpec with Matchers {
     require("./src/test/js/someArr.json") shouldBe jsArray(List(4.0: JDouble, "abra", "cada", 2.0: JDouble, "bra"))
     require("./src/test/js/d") shouldBe "(arg: QQ)"
     require("./src/test/js/d.js") shouldBe "(arg: QQ.js)"
+  }
+
+  "process: " in {
+    import scala.collection.JavaConversions._
+    val jso = require("./src/test/js/process.js").asInstanceOf[JMap[String, AnyRef]]
+    val o = mapAsScalaMap(jso).toMap
+    o("noDeprecation") shouldBe false
+    o("throwDeprecation") shouldBe true
   }
 
 }

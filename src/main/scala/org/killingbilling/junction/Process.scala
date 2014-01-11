@@ -2,6 +2,7 @@ package org.killingbilling.junction
 
 object Process {
 
-  // TODO impl
+  val getNoDeprecation = false
+  val getThrowDeprecation = true
 
 }
