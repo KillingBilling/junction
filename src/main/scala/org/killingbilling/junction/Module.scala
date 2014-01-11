@@ -36,8 +36,8 @@ object Module {
     val g = context.getBindings(GLOBAL_SCOPE)
     g.put("global", rootContext.getBindings(GLOBAL_SCOPE)) // global
     g.put("process", Process) // global
-    //val console = module._require("console") // FIXME require("console") bugs process.stdout
-    //g.put("console", console) // global
+    val console = module._require("console")
+    g.put("console", console) // global
     g.put("Buffer", Buffer) // global
 
     g.put("require", module._require)

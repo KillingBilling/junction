@@ -11,12 +11,13 @@ object Process {
   @BeanProperty val traceDeprecation = true
   // not really needed, because throwDeprecation == true
 
-  class FlushWriter(stream: PrintStream) extends OutputStreamWriter(stream, Charset.defaultCharset()) {
-    override def write(s: String) = {super.write(s); flush()}
+  class Writer(stream: PrintStream) {
+    private val writer = new OutputStreamWriter(stream, Charset.defaultCharset())
+    def write(s: String) = {writer.write(s); writer.flush()}
   }
 
   // these are to implement write(s: String) // TODO impl
-  @BeanProperty lazy val stdout = new FlushWriter(Console.out)
-  @BeanProperty lazy val stderr = new FlushWriter(Console.err)
+  @BeanProperty lazy val stdout = new Writer(Console.out)
+  @BeanProperty lazy val stderr = new Writer(Console.err)
 
 }

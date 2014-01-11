@@ -23,6 +23,10 @@ object ModuleSpec {
   def jsObject(o: Map[String, AnyRef]): JMap[String, AnyRef] = o
   def jsArray(o: List[AnyRef]): JList[AnyRef] = o
 
+  val out = new ByteArrayOutputStream()
+  val err = new ByteArrayOutputStream()
+  Console.setOut(out)
+  Console.setErr(err)
 }
 
 class ModuleSpec extends FreeSpec with Matchers {
@@ -52,8 +56,8 @@ class ModuleSpec extends FreeSpec with Matchers {
   }
 
   "process.stdout: " in {
-    val out = new ByteArrayOutputStream()
-    Console.withOut(out) {require("./src/test/js/writeHello.js")}
+    out.reset()
+    require("./src/test/js/writeHello.js")
     out.toString(Charset.defaultCharset().name()) shouldBe "HELLO!"
   }
 
@@ -61,11 +65,11 @@ class ModuleSpec extends FreeSpec with Matchers {
     getClass.getClassLoader.getResource("lib/console.js") shouldNot be(null)
   }
 
-  //"console.log" in {
-  //  val out = new ByteArrayOutputStream()
-  //  Console.withOut(out) {require("./src/test/js/logHello.js")}
-  //  out.toString(Charset.defaultCharset().name()) shouldBe "HELLO!\n"
-  //}
+  "console.log" in {
+    out.reset()
+    require("./src/test/js/logHello.js")
+    out.toString(Charset.defaultCharset().name()) shouldBe "LOGGING HELLO!\n"
+  }
 
   "Buffer: " in {
     val a = require("./src/test/js/ass.js").asInstanceOf[JMap[String, AnyRef]].toMap

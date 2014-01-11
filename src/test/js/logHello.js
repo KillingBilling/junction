@@ -1,2 +1,1 @@
-console.log('HELLO!');
-
+console.log('LOGGING HELLO!');
