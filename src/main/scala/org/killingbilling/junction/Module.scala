@@ -97,7 +97,11 @@ class Module(parent: Option[Module] = None, val id: String = "[root]")(implicit 
       val module = new Module(self, resolved)
       _cache.put(resolved, module)
 
-      engine.eval(new FileReader(resolved), moduleContext(module, rootContext))
+      val Ext = """.*(\.\w+)$""".r
+      resolved match {
+        case Ext(".json") => // TODO impl
+        case Ext(".js") | _ => engine.eval(new FileReader(resolved), moduleContext(module, rootContext))
+      }
 
       self.children.add(module)
       module._loaded = true
