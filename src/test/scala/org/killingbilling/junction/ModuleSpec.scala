@@ -46,6 +46,7 @@ class ModuleSpec extends FreeSpec with Matchers {
     val p = require("./src/test/js/process.js").asInstanceOf[JMap[String, AnyRef]].toMap
     p("noDeprecation") shouldBe false
     p("throwDeprecation") shouldBe true
+    p("traceDeprecation") shouldBe true
   }
 
 }
