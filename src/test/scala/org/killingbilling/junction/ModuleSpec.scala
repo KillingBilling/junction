@@ -48,6 +48,23 @@ class ModuleSpec extends FreeSpec with Matchers {
     require("./src/test/js/d.js") shouldBe "(arg: QQ.js)"
   }
 
+  "require() cycle" in {
+    val expectedOutput =
+      """
+        |main starting
+        |a starting
+        |b starting
+        |in b, a.done = false
+        |b done
+        |in a, b.done = true
+        |a done
+        |in main, a.done=true, b.done=true
+      """.stripMargin
+    out.reset()
+    require("./src/test/js/main")
+    out.toString(Charset.defaultCharset().name()).trim shouldBe expectedOutput.trim
+  }
+
   "process: " in {
     val p = require("./src/test/js/process.js").asInstanceOf[JMap[String, AnyRef]].toMap
     p("noDeprecation") shouldBe false
