@@ -37,7 +37,7 @@ object Module {
     g.put("global", rootContext.getBindings(GLOBAL_SCOPE)) // global
     g.put("process", Process) // global
     //g.put("console", null) // global, require from resources/lib // TODO impl
-    //g.put("Buffer", null) // global // TODO impl
+    g.put("Buffer", Buffer) // global
 
     g.put("require", module._require)
     g.put("__filename", module.filename)
@@ -131,7 +131,7 @@ class Module(parent: Option[Module] = None, val id: String = "[root]")(implicit 
 
     private def isCore(path: String): Boolean =
       List(
-        "_linklist", "console", "util", "sys", "punycode", "url", "querystring"
+        "_linklist", "assert", "console", "punycode", "querystring", "sys", "url", "util"
       ).contains(path)
 
     private def _coreModule(path: String): Module = ??? // TODO impl

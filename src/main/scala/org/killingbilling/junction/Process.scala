@@ -6,4 +6,7 @@ object Process {
   def getThrowDeprecation = true
   def getTraceDeprecation = true // not really needed, because throwDeprecation == true
 
+  def getStdout = ??? // TODO impl
+  def getStderr = ??? // TODO impl
+
 }

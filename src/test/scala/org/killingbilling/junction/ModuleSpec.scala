@@ -49,4 +49,9 @@ class ModuleSpec extends FreeSpec with Matchers {
     p("traceDeprecation") shouldBe true
   }
 
+  "Buffer: " in {
+    val a = require("./src/test/js/ass.js").asInstanceOf[JMap[String, AnyRef]].toMap
+    a("isBuffer") shouldBe false
+  }
+
 }
