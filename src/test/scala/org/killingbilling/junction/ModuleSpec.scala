@@ -57,6 +57,16 @@ class ModuleSpec extends FreeSpec with Matchers {
     out.toString(Charset.defaultCharset().name()) shouldBe "HELLO!"
   }
 
+  "load lib/console.js" in {
+    getClass.getClassLoader.getResource("lib/console.js") shouldNot be(null)
+  }
+
+  //"console.log" in {
+  //  val out = new ByteArrayOutputStream()
+  //  Console.withOut(out) {require("./src/test/js/logHello.js")}
+  //  out.toString(Charset.defaultCharset().name()) shouldBe "HELLO!\n"
+  //}
+
   "Buffer: " in {
     val a = require("./src/test/js/ass.js").asInstanceOf[JMap[String, AnyRef]].toMap
     a("isBuffer") shouldBe false

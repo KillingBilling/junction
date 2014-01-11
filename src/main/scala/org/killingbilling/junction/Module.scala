@@ -36,7 +36,8 @@ object Module {
     val g = context.getBindings(GLOBAL_SCOPE)
     g.put("global", rootContext.getBindings(GLOBAL_SCOPE)) // global
     g.put("process", Process) // global
-    //g.put("console", null) // global, require from resources/lib // TODO impl
+    //val console = module._require("console") // FIXME require("console") bugs process.stdout
+    //g.put("console", console) // global
     g.put("Buffer", Buffer) // global
 
     g.put("require", module._require)
@@ -53,7 +54,8 @@ class Module(parent: Option[Module] = None, val id: String = "[root]")(implicit 
 
   import Module._
 
-  private lazy val rootContext: ScriptContext = parent map {_.rootContext} getOrElse moduleContext(self)
+  private lazy val rootContext: ScriptContext = parent map {_.rootContext} getOrElse moduleContext(root)
+  private lazy val root: Module = parent map {_.root} getOrElse self
 
   private var _exports: AnyRef = new JHashMap()
   def getExports: AnyRef = _exports
@@ -63,7 +65,7 @@ class Module(parent: Option[Module] = None, val id: String = "[root]")(implicit 
 
     def apply(path: String) = {
       val module = _resolve(path)(_dir) map {
-        case (true, resolved) => _coreModule(resolved)
+        case (true, resolved) => Option(_core.get(resolved)) getOrElse _coreModule(resolved)
         case (false, resolved) => Option(_cache.get(resolved)) getOrElse _loadModule(resolved)
       } getOrElse {
         throw new RuntimeException(s"Error: Cannot find module '$path'")
@@ -134,11 +136,20 @@ class Module(parent: Option[Module] = None, val id: String = "[root]")(implicit 
         "_linklist", "assert", "console", "punycode", "querystring", "sys", "url", "util"
       ).contains(path)
 
-    private def _coreModule(path: String): Module = ??? // TODO impl
+    private def _coreModule(resolved: String): Module = {
+      val module = new Module(root, resolved)
+      _core.put(resolved, module)
+      val inputStream = getClass.getClassLoader.getResourceAsStream(s"lib/$resolved.js")
+      engine.eval(Source.fromInputStream(inputStream).bufferedReader(), moduleContext(module, rootContext))
+      root.children.add(module)
+      module._loaded = true
+      module
+    }
 
   }
 
   private val _cache: JMap[String, Module] = parent map {_._cache} getOrElse new JHashMap()
+  private val _core: JMap[String, Module] = parent map {_._core} getOrElse new JHashMap()
 
   def getRequire: JFunction[String, AnyRef] = _require
 
