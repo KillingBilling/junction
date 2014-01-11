@@ -11,7 +11,7 @@ package object utils {
 
   implicit def a2opt[A](a: A): Option[A] = Option(a)
 
-  implicit lazy val sem = new ScriptEngineManager()
+  implicit lazy val sem = new ScriptEngineManager(classOf[ScriptEngineManager].getClassLoader)
 
   def newEngine(name: String = "nashorn")(implicit sem: ScriptEngineManager) = {
     sem.getEngineByName(name)
