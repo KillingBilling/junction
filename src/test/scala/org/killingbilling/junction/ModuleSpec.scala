@@ -4,10 +4,12 @@ import java.io.ByteArrayOutputStream
 import java.lang.{Double => JDouble}
 import java.nio.file.Paths
 import java.util.{List => JList, Map => JMap}
+import java.util.function.{Function => JFunction}
 import org.killingbilling.junction.utils._
 import org.scalatest.{Matchers, FreeSpec}
 import scala.collection.JavaConversions._
 import scala.compat.Platform
+import javax.script.Invocable
 
 object ModuleSpec {
 
@@ -93,6 +95,13 @@ class ModuleSpec extends FreeSpec with Matchers {
   "Buffer: " in {
     val a = require("./src/test/js/ass.js").asInstanceOf[JMap[String, AnyRef]].toMap
     a("isBuffer") shouldBe false
+  }
+
+  "use exported function from Java" in {
+    val f = require("./src/test/js/d/lib/sub.js")
+    val inv = js.asInstanceOf[Invocable]
+    val jf = inv.getInterface(f, classOf[JFunction[String, String]]) // FIXME crashes here
+    jf("QQ") shouldBe "(arg: QQ)"
   }
 
 }
