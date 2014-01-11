@@ -56,7 +56,7 @@ class Module(parent: Option[Module] = None, val id: String = "[root]")(implicit 
   def getExports: AnyRef = _exports
   def setExports(o: AnyRef) {_exports = o}
 
-  private object _require extends JFunction[String, AnyRef] with Require {
+  private[junction] object _require extends JFunction[String, AnyRef] with Require {
 
     def apply(path: String) = {
       val module = _resolve(path) map {
@@ -96,9 +96,8 @@ class Module(parent: Option[Module] = None, val id: String = "[root]")(implicit 
     private def _loadModule(resolved: String): Module = {
       val module = new Module(self, resolved)
       _cache.put(resolved, module)
-      val context = moduleContext(module, rootContext)
 
-      engine.eval(new FileReader(resolved), context)
+      engine.eval(new FileReader(resolved), moduleContext(module, rootContext))
 
       self.children.add(module)
       module._loaded = true
