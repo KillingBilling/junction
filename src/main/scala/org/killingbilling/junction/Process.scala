@@ -1,7 +1,8 @@
 package org.killingbilling.junction
 
-import java.io.{File, OutputStreamWriter, PrintStream}
+import java.io.{OutputStreamWriter, PrintStream}
 import java.nio.charset.Charset
+import java.nio.file.Paths
 import scala.beans.BeanProperty
 
 object Process {
@@ -15,14 +16,11 @@ object Process {
   @BeanProperty val env = System.getenv()
 
   def chdir(d: String) {
-    val dir = new File(d).getCanonicalFile
-    if (dir.isDirectory) {
-      System.setProperty("user.dir", dir.getPath)
-    } else throw new RuntimeException(s"Error: no such directory: ${dir.getPath}")
+    throw new RuntimeException(s"Error: JVM cannot change process current dir")
   }
 
-  def cwd(): String = System.getProperty("user.dir")
-  // == new File(".").getCanonicalPath
+  private val _cwd: String = Paths.get(".").toAbsolutePath.normalize().toString
+  def cwd(): String = _cwd
 
   class Writer(stream: PrintStream) {
     private val writer = new OutputStreamWriter(stream, Charset.defaultCharset())
