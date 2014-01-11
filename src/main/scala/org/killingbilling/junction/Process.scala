@@ -1,8 +1,7 @@
 package org.killingbilling.junction
 
-import java.io.{OutputStreamWriter, PrintStream}
+import java.io.{File, OutputStreamWriter, PrintStream}
 import java.nio.charset.Charset
-import java.nio.file.Paths
 import scala.beans.BeanProperty
 
 object Process {
@@ -13,8 +12,17 @@ object Process {
   // not really needed, because throwDeprecation == true
 
   @BeanProperty val platform = System.getProperty("os.name").toLowerCase
-  def cwd(): String = Paths.get(".").toAbsolutePath.normalize().toString
   @BeanProperty val env = System.getenv()
+
+  def chdir(d: String) {
+    val dir = new File(d).getCanonicalFile
+    if (dir.isDirectory) {
+      System.setProperty("user.dir", dir.getPath)
+    } else throw new RuntimeException(s"Error: no such directory: ${dir.getPath}")
+  }
+
+  def cwd(): String = System.getProperty("user.dir")
+  // == new File(".").getCanonicalPath
 
   class Writer(stream: PrintStream) {
     private val writer = new OutputStreamWriter(stream, Charset.defaultCharset())
