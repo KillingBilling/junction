@@ -38,6 +38,8 @@ class ModuleSpec extends FreeSpec with Matchers {
     require("./src/test/js/dummy.txt") shouldBe jsObject(Map("dummyID" -> "dummy"))
     require("./src/test/js/someObj.json") shouldBe jsObject(Map("qq" -> "QQ", "n" -> (2.0: JDouble)))
     require("./src/test/js/someArr.json") shouldBe jsArray(List(4.0: JDouble, "abra", "cada", 2.0: JDouble, "bra"))
+    require("./src/test/js/d") shouldBe "(arg: QQ)"
+    require("./src/test/js/d.js") shouldBe "(arg: QQ.js)"
   }
 
 }

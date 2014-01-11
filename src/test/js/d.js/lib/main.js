@@ -1,1 +1,1 @@
-module.exports = require('./sub')("QQ");
+module.exports = require('./sub')("QQ.js");
