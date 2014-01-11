@@ -111,17 +111,15 @@ class Module(parent: Option[Module] = None, val id: String = "[root]")(implicit 
       val Ext = """.*(\.\w+)$""".r
       resolved match {
         case Ext(".json") =>
-          module.setExports(
-            Try {
-              import scala.collection.JavaConversions._
-              JSON.parseFull(Source.fromFile(resolved).mkString).get match {
-                case a: Map[String, AnyRef] => a: JMap[String, AnyRef]
-                case a: List[AnyRef] => a: JList[AnyRef]
-              }
-            } recover {
-              case e => throw new RuntimeException(s"JSON parse error: $resolved", e)
-            } get
-          )
+          module._exports = (Try {
+            import scala.collection.JavaConversions._
+            JSON.parseFull(Source.fromFile(resolved).mkString).get match {
+              case a: Map[String, AnyRef] => a: JMap[String, AnyRef]
+              case a: List[AnyRef] => a: JList[AnyRef]
+            }
+          } recover {
+            case e => throw new RuntimeException(s"JSON parse error: $resolved", e)
+          }).get
         case Ext(".js") | _ =>
           engine.eval(Source.fromFile(resolved).bufferedReader(), moduleContext(module, rootContext))
       }
