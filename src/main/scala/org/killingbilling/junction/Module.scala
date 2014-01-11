@@ -1,12 +1,15 @@
 package org.killingbilling.junction
 
-import java.io.{FileReader, File}
+import java.io.File
 import java.util.function.{Function => JFunction}
 import java.util.{List => JList, ArrayList => JArrayList, Map => JMap, HashMap => JHashMap}
 import javax.script.ScriptContext._
 import javax.script.{ScriptContext, SimpleScriptContext, ScriptEngine}
 import org.killingbilling.junction.utils._
 import scala.beans.BeanInfo
+import scala.io.Source
+import scala.util.Try
+import scala.util.parsing.json.JSON
 
 object Module {
 
@@ -99,8 +102,20 @@ class Module(parent: Option[Module] = None, val id: String = "[root]")(implicit 
 
       val Ext = """.*(\.\w+)$""".r
       resolved match {
-        case Ext(".json") => // TODO impl
-        case Ext(".js") | _ => engine.eval(new FileReader(resolved), moduleContext(module, rootContext))
+        case Ext(".json") =>
+          module.setExports(
+            Try {
+              import scala.collection.JavaConversions._
+              JSON.parseFull(Source.fromFile(resolved).mkString).get match {
+                case a: Map[String, AnyRef] => a: JMap[String, AnyRef]
+                case a: List[AnyRef] => a: JList[AnyRef]
+              }
+            } recover {
+              case e => throw new RuntimeException(s"JSON parse error: $resolved", e)
+            } get
+          )
+        case Ext(".js") | _ =>
+          engine.eval(Source.fromFile(resolved).bufferedReader(), moduleContext(module, rootContext))
       }
 
       self.children.add(module)
