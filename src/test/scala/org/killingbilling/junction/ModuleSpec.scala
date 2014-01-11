@@ -5,10 +5,9 @@ import java.nio.file.Paths
 import java.util.{List => JList, Map => JMap}
 import org.killingbilling.junction.utils._
 import org.scalatest.{Matchers, FreeSpec}
+import scala.collection.JavaConversions._
 
 object ModuleSpec {
-
-  import scala.collection.JavaConversions._
 
   implicit val js = newEngine()
 
@@ -19,8 +18,8 @@ object ModuleSpec {
 
   def resolvedPath(s: String) = workDir.resolve(s).normalize().toString
 
-  def jsObject(o: Map[String, AnyRef]): JMap[String, AnyRef] = o: JMap[String, AnyRef]
-  def jsArray(o: List[AnyRef]): JList[AnyRef] = o: JList[AnyRef]
+  def jsObject(o: Map[String, AnyRef]): JMap[String, AnyRef] = o
+  def jsArray(o: List[AnyRef]): JList[AnyRef] = o
 
 }
 
@@ -44,11 +43,9 @@ class ModuleSpec extends FreeSpec with Matchers {
   }
 
   "process: " in {
-    import scala.collection.JavaConversions._
-    val jso = require("./src/test/js/process.js").asInstanceOf[JMap[String, AnyRef]]
-    val o = mapAsScalaMap(jso).toMap
-    o("noDeprecation") shouldBe false
-    o("throwDeprecation") shouldBe true
+    val p = require("./src/test/js/process.js").asInstanceOf[JMap[String, AnyRef]].toMap
+    p("noDeprecation") shouldBe false
+    p("throwDeprecation") shouldBe true
   }
 
 }
