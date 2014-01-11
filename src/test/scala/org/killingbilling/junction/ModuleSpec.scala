@@ -13,6 +13,8 @@ object ModuleSpec {
 
   implicit val js = newEngine()
 
+  assert(js != null, "ENGINE SHOULD NOT BE NULL") // FIXME fails in SBT
+
   val rootModule = new Module()
   val require = rootModule._require
 

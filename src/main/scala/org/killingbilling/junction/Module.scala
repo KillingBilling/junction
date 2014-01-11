@@ -18,17 +18,16 @@ object Module {
     def getCache: JMap[String, Module]
   }
 
-  def newContext()(implicit engine: ScriptEngine): ScriptContext = {
-    val context = new SimpleScriptContext
-    context.setBindings(engine.createBindings(), GLOBAL_SCOPE)
-    context.setBindings(engine.createBindings(), ENGINE_SCOPE)
-    context
-  }
-
   def moduleContext(module: Module, root: Option[ScriptContext] = None)
         (implicit engine: ScriptEngine): ScriptContext = {
-    val context = newContext()
+
+    val context = new SimpleScriptContext
+
+    context.setBindings(engine.createBindings(), GLOBAL_SCOPE)
+    context.setBindings(engine.createBindings(), ENGINE_SCOPE)
+
     initGlobals(module, context, root getOrElse context)
+
     context
   }
 
