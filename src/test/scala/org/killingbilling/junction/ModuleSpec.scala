@@ -1,6 +1,8 @@
 package org.killingbilling.junction
 
+import java.io.ByteArrayOutputStream
 import java.lang.{Double => JDouble}
+import java.nio.charset.Charset
 import java.nio.file.Paths
 import java.util.{List => JList, Map => JMap}
 import org.killingbilling.junction.utils._
@@ -47,6 +49,12 @@ class ModuleSpec extends FreeSpec with Matchers {
     p("noDeprecation") shouldBe false
     p("throwDeprecation") shouldBe true
     p("traceDeprecation") shouldBe true
+  }
+
+  "process.stdout: " in {
+    val out = new ByteArrayOutputStream()
+    Console.withOut(out) {require("./src/test/js/writeHello.js")}
+    out.toString(Charset.defaultCharset().name()) shouldBe "HELLO!"
   }
 
   "Buffer: " in {
