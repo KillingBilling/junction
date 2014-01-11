@@ -2,6 +2,7 @@ package org.killingbilling.junction
 
 import java.io.{OutputStreamWriter, PrintStream}
 import java.nio.charset.Charset
+import java.nio.file.Paths
 import scala.beans.BeanProperty
 
 object Process {
@@ -10,6 +11,10 @@ object Process {
   @BeanProperty val throwDeprecation = true
   @BeanProperty val traceDeprecation = true
   // not really needed, because throwDeprecation == true
+
+  @BeanProperty val platform = System.getProperty("os.name").toLowerCase
+  def cwd(): String = Paths.get(".").toAbsolutePath.normalize().toString
+  @BeanProperty val env = System.getenv()
 
   class Writer(stream: PrintStream) {
     private val writer = new OutputStreamWriter(stream, Charset.defaultCharset())

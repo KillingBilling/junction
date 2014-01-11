@@ -2,12 +2,12 @@ package org.killingbilling.junction
 
 import java.io.ByteArrayOutputStream
 import java.lang.{Double => JDouble}
-import java.nio.charset.Charset
 import java.nio.file.Paths
 import java.util.{List => JList, Map => JMap}
 import org.killingbilling.junction.utils._
 import org.scalatest.{Matchers, FreeSpec}
 import scala.collection.JavaConversions._
+import scala.compat.Platform
 
 object ModuleSpec {
 
@@ -64,7 +64,7 @@ class ModuleSpec extends FreeSpec with Matchers {
       """.stripMargin
     out.reset()
     require("./src/test/js/main")
-    out.toString(Charset.defaultCharset().name()).trim shouldBe expectedOutput.trim
+    out.toString(Platform.defaultCharsetName).trim shouldBe expectedOutput.trim
   }
 
   "process: " in {
@@ -77,7 +77,7 @@ class ModuleSpec extends FreeSpec with Matchers {
   "process.stdout: " in {
     out.reset()
     require("./src/test/js/writeHello.js")
-    out.toString(Charset.defaultCharset().name()) shouldBe "HELLO!"
+    out.toString(Platform.defaultCharsetName) shouldBe "HELLO!"
   }
 
   "load lib/console.js" in {
@@ -87,7 +87,7 @@ class ModuleSpec extends FreeSpec with Matchers {
   "console.log" in {
     out.reset()
     require("./src/test/js/logHello.js")
-    out.toString(Charset.defaultCharset().name()) shouldBe "LOGGING HELLO!\n"
+    out.toString(Platform.defaultCharsetName) shouldBe "LOGGING HELLO!\n"
   }
 
   "Buffer: " in {
