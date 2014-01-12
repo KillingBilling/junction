@@ -13,6 +13,8 @@ import scala.util.parsing.json.JSON
 
 object Module {
 
+  case class WithObj[T](module: Module, obj: Option[T])
+  
   case class Context(engine: ScriptEngine, globals: Bindings, locals: Bindings) {
 
     def createBindings() = engine.createBindings()
@@ -23,16 +25,19 @@ object Module {
       oldGlobals
     }
 
-    def eval(source: Reader) {
+    def eval[T](source: Reader, tOpt: Option[Class[T]]): Option[T] = {
       val old = swapGlobals(globals)
       engine.eval(source, locals)
+      
+      val obj = tOpt map {t =>
+        engine.eval("var __exports = module.exports;", locals)
+        val inv = engine.asInstanceOf[Invocable]
+        inv.getInterface(locals.get("__exports"), t)
+      } flatMap {v => Option(v)}
+      
       swapGlobals(old)
-    }
-
-    def eval(source: String) {
-      val old = swapGlobals(globals)
-      engine.eval(source, locals)
-      swapGlobals(old)
+      
+      obj
     }
 
   }
@@ -81,25 +86,19 @@ class Module(parent: Option[Module] = None, val id: String = "[root]")(implicit 
 
   private object _require extends JFunction[String, AnyRef] with Require {
 
-    def module(path: String) = {
-      val module = _resolve(path)(_dir) map {
-        case (true, resolved) => Option(_core.get(resolved)) getOrElse _coreModule(resolved)
-        case (false, resolved) => Option(_cache.get(resolved)) getOrElse _loadModule(resolved)
+    protected def moduleWithObj[T](path: String, t: Option[Class[T]]): WithObj[T] = {
+      val moduleWithObj: WithObj[T] = _resolve(path)(_dir) map {
+        case (true, resolved) => Option(_core.get(resolved)) map {WithObj[T](_, None)} getOrElse _coreModule(resolved, t)
+        case (false, resolved) => Option(_cache.get(resolved)) map {WithObj[T](_, None)} getOrElse _loadModule(resolved, t)
       } getOrElse {
         throw new RuntimeException(s"Error: Cannot find module '$path'")
       }
-      module
+      moduleWithObj
     }
 
-    def apply(path: String): AnyRef = module(path).getExports
+    def apply(path: String): AnyRef = moduleWithObj(path, None).module.getExports
 
-    def impl[T](path: String, t: Class[T]): T = {
-      module(path)
-
-      context.eval("var __exports = module.exports;")
-      val inv = context.engine.asInstanceOf[Invocable]
-      inv.getInterface(context.locals.get("__exports"), t)
-    }
+    def impl[T](path: String, t: Class[T]): Option[T] = moduleWithObj(path, t).obj
 
     def resolve(path: String): String = _resolve(path)(_dir) map {_._2} getOrElse {
       throw new RuntimeException(s"Error: Cannot find module '$path'")
@@ -134,12 +133,12 @@ class Module(parent: Option[Module] = None, val id: String = "[root]")(implicit 
 
     def getCache: JMap[String, Module] = _cache // global, map: id -> module
 
-    private def _loadModule(resolved: String): Module = {
+    private def _loadModule[T](resolved: String, t: Option[Class[T]]): WithObj[T] = {
       val module = new Module(self, resolved)
       _cache.put(resolved, module)
 
       val Ext = """.*(\.\w+)$""".r
-      resolved match {
+      val obj: Option[T] = resolved match {
         case Ext(".json") =>
           module._exports = (Try {
             import scala.collection.JavaConversions._
@@ -150,14 +149,14 @@ class Module(parent: Option[Module] = None, val id: String = "[root]")(implicit 
           } recover {
             case e => throw new RuntimeException(s"JSON parse error: $resolved", e)
           }).get
+          None
         case Ext(".js") | _ =>
-          //engine.eval(Source.fromFile(resolved).bufferedReader(), module.context)
-          module.context.eval(Source.fromFile(resolved).bufferedReader())
+          module.context.eval(Source.fromFile(resolved).bufferedReader(), t)
       }
 
       self.children.add(module)
       module._loaded = true
-      module
+      WithObj[T](module, obj)
     }
 
     private def isCore(path: String): Boolean =
@@ -165,15 +164,14 @@ class Module(parent: Option[Module] = None, val id: String = "[root]")(implicit 
         "_linklist", "assert", "console", "freelist", "path", "punycode", "querystring", "sys", "url", "util"
       ).contains(path)
 
-    private def _coreModule(resolved: String): Module = {
+    private def _coreModule[T](resolved: String, t: Option[Class[T]]): WithObj[T] = {
       val module = new Module(root, resolved)
       _core.put(resolved, module)
       val inputStream = getClass.getClassLoader.getResourceAsStream(s"lib/$resolved.js")
-      //engine.eval(Source.fromInputStream(inputStream).bufferedReader(), module.context)
-      module.context.eval(Source.fromInputStream(inputStream).bufferedReader())
+      val obj: Option[T] = module.context.eval(Source.fromInputStream(inputStream).bufferedReader(), t)
       root.children.add(module)
       module._loaded = true
-      module
+      WithObj[T](module, obj)
     }
 
   }

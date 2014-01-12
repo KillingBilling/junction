@@ -103,10 +103,14 @@ class ModuleSpec extends FreeSpec with Matchers {
 
   "require.impl()" in {
     val require = Require()
-    val acc: ServiceAccount = require.impl("./src/test/js/acc.js", classOf[ServiceAccount])
+    val acc: ServiceAccount = require.impl("./src/test/js/acc.js", classOf[ServiceAccount]).get
+    val acc2: ServiceAccount = require.impl("./src/test/js/acc2.js", classOf[ServiceAccount]).get
 
     acc.aggr(1, 2) shouldBe 3
-    acc.init(1) shouldBe 1
+    acc.init(4) shouldBe 0
+
+    acc2.aggr(1, 2) shouldBe 2
+    acc2.init(4) shouldBe 1
   }
 
   "plain JS - impl interface" in {
