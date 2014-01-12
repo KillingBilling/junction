@@ -17,4 +17,6 @@ package object utils {
     sem.getEngineByName(name)
   }
 
+  implicit def newJs(): ScriptEngine = newEngine()
+
 }

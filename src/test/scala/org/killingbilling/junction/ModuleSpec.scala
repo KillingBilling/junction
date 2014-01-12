@@ -116,11 +116,10 @@ class ModuleSpec extends FreeSpec with Matchers {
 
   "module.exports - impl interface" in {
     val js = newEngine()
-    
-    val module = new Module()(newEngine())
-    
-    js.put("module", module)
-    js.put("exports", module.getExports)
+    val module = new Module()
+
+    val context = js.getContext
+    context.getBindings(ScriptContext.GLOBAL_SCOPE).put("module", module)
 
     js.eval( """
                | module.exports = {
@@ -129,11 +128,10 @@ class ModuleSpec extends FreeSpec with Matchers {
                | };
                | """.stripMargin)
 
-    js.eval("var exports = module.exports;")
-    val exports = js.getContext.getBindings(ScriptContext.ENGINE_SCOPE).get("exports")
-
+    val locals = js.createBindings()
+    js.eval("var __exports = module.exports;", locals)
     val inv = js.asInstanceOf[Invocable]
-    val acc = inv.getInterface(exports, classOf[ServiceAccount])
+    val acc = inv.getInterface(locals.get("__exports"), classOf[ServiceAccount])
 
     acc.aggr(1, 2) shouldBe 3
     acc.init(1) shouldBe 1

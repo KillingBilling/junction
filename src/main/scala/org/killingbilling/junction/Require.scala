@@ -12,7 +12,7 @@ trait Require {
 
 object Require extends Require {
 
-  private lazy val default: Require = forModule(new Module()(newEngine()))
+  private lazy val default: Require = forModule(new Module())
 
   def getCache = default.getCache
   def resolve(path: String) = default.resolve(path)

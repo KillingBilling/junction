@@ -44,9 +44,11 @@ object Module {
 }
 
 @BeanInfo
-class Module(parent: Option[Module] = None, val id: String = "[root]")(implicit engine: ScriptEngine) {self =>
+class Module(parent: Option[Module] = None, val id: String = "[root]")(implicit createEngine: () => ScriptEngine) {self =>
 
   import Module._
+
+  private lazy implicit val engine: ScriptEngine = parent map {_.engine} getOrElse createEngine()
 
   private lazy val root: Module = parent map {_.root} getOrElse self
   private lazy val context: ScriptContext =
