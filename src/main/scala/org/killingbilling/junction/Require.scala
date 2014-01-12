@@ -9,7 +9,7 @@ trait Require {
   def resolve(path: String): String
   def getCache: JMap[String, Module]
 
-  def impl[T](path: String, c: Class[T]): Option[T]
+  def impl[T](path: String, c: Class[T]): T
 }
 
 object Require {

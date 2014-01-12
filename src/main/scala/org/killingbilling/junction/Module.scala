@@ -96,7 +96,11 @@ class Module(parent: Option[Module] = None, val id: String = "[root]")(implicit 
 
     def apply(path: String): AnyRef = moduleWithObj(path, None).module.getExports
 
-    def impl[T](path: String, t: Class[T]): Option[T] = moduleWithObj(path, t).obj
+    def impl[T <: Any](path: String, t: Class[T]): T = _impl(path, t).asInstanceOf[T]
+    private val _impl = Memo2[String, Class[_], Any](impl0)
+
+    private def impl0(path: String, t: Class[_]): Any = moduleWithObj(path, t).obj getOrElse
+        {throw new RuntimeException(s"Error: Cannot implement type ${t.getName} with $path")}
 
     def resolve(path: String): String = _resolve(path)(_dir) map {_._2} getOrElse {
       throw new RuntimeException(s"Error: Cannot find module '$path'")
