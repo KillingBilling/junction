@@ -3,7 +3,6 @@ package org.killingbilling.junction
 import java.io.ByteArrayOutputStream
 import java.lang.{Double => JDouble}
 import java.nio.file.Paths
-import java.util.function.{Function => JFunction}
 import java.util.{List => JList, Map => JMap}
 import javax.script.{ScriptContext, Invocable}
 import org.killingbilling.junction.utils._
@@ -113,30 +112,9 @@ class ModuleSpec extends FreeSpec with Matchers {
     acc2.init(4) shouldBe 1
   }
 
-  "plain JS - impl interface" in {
-    val js = newEngine()
-
-    js.eval( """
-               | var o = {
-               |   aggr: function(a, b) {return a + b;},
-               |   init: function(v) {return (v == null) ? 0 : v;}
-               | };
-               | """.stripMargin)
-
-    val o = js.get("o")
-    val inv = js.asInstanceOf[Invocable]
-    val acc = inv.getInterface(o, classOf[ServiceAccount])
-
-    acc.aggr(1, 2) shouldBe 3
-    acc.init(1) shouldBe 1
-  }
-
   "module.exports - impl interface" in {
     val js = newEngine()
-    val module = new Module()
-
-    val context = js.getContext
-    context.getBindings(ScriptContext.GLOBAL_SCOPE).put("module", module)
+    js.getContext.getBindings(ScriptContext.GLOBAL_SCOPE).put("module", new Module())
 
     js.eval( """
                | module.exports = {
@@ -147,8 +125,7 @@ class ModuleSpec extends FreeSpec with Matchers {
 
     val locals = js.createBindings()
     js.eval("var __exports = module.exports;", locals)
-    val inv = js.asInstanceOf[Invocable]
-    val acc = inv.getInterface(locals.get("__exports"), classOf[ServiceAccount])
+    val acc = js.asInstanceOf[Invocable].getInterface(locals.get("__exports"), classOf[ServiceAccount])
 
     acc.aggr(1, 2) shouldBe 3
     acc.init(1) shouldBe 1

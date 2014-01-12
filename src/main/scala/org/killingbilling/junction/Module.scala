@@ -31,8 +31,7 @@ object Module {
       
       val obj = tOpt map {t =>
         engine.eval("var __exports = module.exports;", locals)
-        val inv = engine.asInstanceOf[Invocable]
-        inv.getInterface(locals.get("__exports"), t)
+        engine.asInstanceOf[Invocable].getInterface(locals.get("__exports"), t)
       } flatMap {v => Option(v)}
       
       swapGlobals(old)
