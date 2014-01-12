@@ -137,15 +137,11 @@ class ModuleSpec extends FreeSpec with Matchers {
     acc.init(1) shouldBe 1
   }
 
-  "use exported function from Java" ignore {
-    val module = require.module("./src/test/js/d/lib/sub.js")
+  "require.impl()" in {
+    val acc: ServiceAccount = require.impl("./src/test/js/acc.js", classOf[ServiceAccount])
 
-    val o = module.getExports
-    val inv = module.invocable
-
-    val f = inv.getInterface(o, classOf[JFunction[String, String]]) // FIXME crashes here
-
-    f("QQ") shouldBe "(arg: QQ)"
+    acc.aggr(1, 2) shouldBe 3
+    acc.init(1) shouldBe 1
   }
 
 }

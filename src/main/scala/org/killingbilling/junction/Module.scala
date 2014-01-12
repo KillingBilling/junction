@@ -76,6 +76,14 @@ class Module(parent: Option[Module] = None, val id: String = "[root]")(implicit 
       module
     }
 
+    def impl[T](path: String, t: Class[T]): T = {
+      module(path)
+      val locals = engine.createBindings()
+      engine.eval("var __exports = module.exports;", locals)
+      val inv = engine.asInstanceOf[Invocable]
+      inv.getInterface(locals.get("__exports"), t)
+    }
+
     def resolve(path: String): String = _resolve(path)(_dir) map {_._2} getOrElse {
       throw new RuntimeException(s"Error: Cannot find module '$path'")
     }
