@@ -5,7 +5,7 @@ import java.lang.{Double => JDouble}
 import java.nio.file.Paths
 import java.util.function.{Function => JFunction}
 import java.util.{List => JList, Map => JMap}
-import javax.script.Invocable
+import javax.script.{ScriptContext, Invocable}
 import org.killingbilling.junction.utils._
 import org.scalatest.{Matchers, FreeSpec}
 import scala.collection.JavaConversions._
@@ -109,6 +109,31 @@ class ModuleSpec extends FreeSpec with Matchers {
     val o = js.get("o")
     val inv = js.asInstanceOf[Invocable]
     val acc = inv.getInterface(o, classOf[ServiceAccount])
+
+    acc.aggr(1, 2) shouldBe 3
+    acc.init(1) shouldBe 1
+  }
+
+  "module.exports - impl interface" in {
+    val js = newEngine()
+    
+    val module = new Module()(newEngine())
+    
+    js.put("module", module)
+    js.put("exports", module.getExports)
+
+    js.eval( """
+               | module.exports = {
+               |   aggr: function(a, b) {return a + b;},
+               |   init: function(v) {return (v == null) ? 0 : v;}
+               | };
+               | """.stripMargin)
+
+    js.eval("var exports = module.exports;")
+    val exports = js.getContext.getBindings(ScriptContext.ENGINE_SCOPE).get("exports")
+
+    val inv = js.asInstanceOf[Invocable]
+    val acc = inv.getInterface(exports, classOf[ServiceAccount])
 
     acc.aggr(1, 2) shouldBe 3
     acc.init(1) shouldBe 1
