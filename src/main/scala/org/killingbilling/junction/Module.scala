@@ -18,7 +18,7 @@ object Module {
     def getCache: JMap[String, Module]
   }
 
-  def moduleContext(module: Module, root: Option[ScriptContext] = None)
+  def moduleContext(module: Module, rootContext: Option[ScriptContext] = None)
         (implicit engine: ScriptEngine): ScriptContext = {
 
     val context = new SimpleScriptContext
@@ -26,7 +26,7 @@ object Module {
     context.setBindings(engine.createBindings(), GLOBAL_SCOPE)
     context.setBindings(engine.createBindings(), ENGINE_SCOPE)
 
-    initGlobals(module, context, root getOrElse context)
+    initGlobals(module, context, rootContext getOrElse context)
 
     context
   }
@@ -53,8 +53,9 @@ class Module(parent: Option[Module] = None, val id: String = "[root]")(implicit 
 
   import Module._
 
-  private lazy val rootContext: ScriptContext = parent map {_.rootContext} getOrElse moduleContext(root)
   private lazy val root: Module = parent map {_.root} getOrElse self
+  private lazy val context: ScriptContext =
+    parent map {_ => moduleContext(self, root.context)} getOrElse moduleContext(self)
 
   private var _exports: AnyRef = new JHashMap()
   def getExports: AnyRef = _exports
@@ -122,7 +123,7 @@ class Module(parent: Option[Module] = None, val id: String = "[root]")(implicit 
             case e => throw new RuntimeException(s"JSON parse error: $resolved", e)
           }).get
         case Ext(".js") | _ =>
-          engine.eval(Source.fromFile(resolved).bufferedReader(), moduleContext(module, rootContext))
+          engine.eval(Source.fromFile(resolved).bufferedReader(), module.context)
       }
 
       self.children.add(module)
@@ -139,7 +140,7 @@ class Module(parent: Option[Module] = None, val id: String = "[root]")(implicit 
       val module = new Module(root, resolved)
       _core.put(resolved, module)
       val inputStream = getClass.getClassLoader.getResourceAsStream(s"lib/$resolved.js")
-      engine.eval(Source.fromInputStream(inputStream).bufferedReader(), moduleContext(module, rootContext))
+      engine.eval(Source.fromInputStream(inputStream).bufferedReader(), module.context)
       root.children.add(module)
       module._loaded = true
       module
