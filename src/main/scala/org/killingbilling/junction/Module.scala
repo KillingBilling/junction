@@ -1,10 +1,10 @@
 package org.killingbilling.junction
 
-import java.io.File
+import java.io.{Reader, File}
 import java.util.function.{Function => JFunction}
 import java.util.{List => JList, ArrayList => JArrayList, Map => JMap, HashMap => JHashMap}
 import javax.script.ScriptContext._
-import javax.script.{Invocable, ScriptContext, SimpleScriptContext, ScriptEngine}
+import javax.script.{Bindings, Invocable, ScriptEngine}
 import org.killingbilling.junction.utils._
 import scala.beans.BeanInfo
 import scala.io.Source
@@ -13,22 +13,43 @@ import scala.util.parsing.json.JSON
 
 object Module {
 
-  def moduleContext(module: Module, rootContext: Option[ScriptContext] = None)
-        (implicit engine: ScriptEngine): ScriptContext = {
+  case class Context(engine: ScriptEngine, globals: Bindings, locals: Bindings) {
 
-    val context = new SimpleScriptContext
+    def createBindings() = engine.createBindings()
 
-    context.setBindings(engine.createBindings(), GLOBAL_SCOPE)
-    context.setBindings(engine.createBindings(), ENGINE_SCOPE)
+    private def swapGlobals(newGlobals: Bindings): Bindings = {
+      val oldGlobals = engine.getBindings(GLOBAL_SCOPE)
+      engine.setBindings(newGlobals, GLOBAL_SCOPE)
+      oldGlobals
+    }
 
+    def eval(source: Reader) {
+      val old = swapGlobals(globals)
+      engine.eval(source, locals)
+      swapGlobals(old)
+    }
+
+    def eval(source: String) {
+      val old = swapGlobals(globals)
+      engine.eval(source, locals)
+      swapGlobals(old)
+    }
+
+  }
+
+  object Context {
+    def apply(engine: ScriptEngine): Context = Context(engine, engine.createBindings(), engine.createBindings())
+  }
+
+  def moduleContext(module: Module, rootContext: Option[Context] = None)(implicit engine: ScriptEngine): Context = {
+    val context = Context(engine)
     initGlobals(module, context, rootContext getOrElse context)
-
     context
   }
 
-  private def initGlobals(module: Module, context: ScriptContext, rootContext: ScriptContext) {
-    val g = context.getBindings(GLOBAL_SCOPE)
-    g.put("global", rootContext.getBindings(GLOBAL_SCOPE)) // global
+  private def initGlobals(module: Module, context: Context, rootContext: Context) {
+    val g = context.globals
+    g.put("global", rootContext.globals) // global
     g.put("process", Process) // global
     val console = module._require("console")
     g.put("console", console) // global
@@ -51,18 +72,12 @@ class Module(parent: Option[Module] = None, val id: String = "[root]")(implicit 
   private lazy implicit val engine: ScriptEngine = parent map {_.engine} getOrElse createEngine()
 
   private lazy val root: Module = parent map {_.root} getOrElse self
-  private lazy val context: ScriptContext =
+  private lazy val context: Context =
     parent map {_ => moduleContext(self, root.context)} getOrElse moduleContext(self)
 
   private var _exports: AnyRef = new JHashMap()
   def getExports: AnyRef = _exports
   def setExports(o: AnyRef) {_exports = o}
-
-  def invocable = {
-    val engine = newEngine()
-    engine.setContext(context)
-    engine.asInstanceOf[Invocable]
-  }
 
   private object _require extends JFunction[String, AnyRef] with Require {
 
@@ -76,12 +91,14 @@ class Module(parent: Option[Module] = None, val id: String = "[root]")(implicit 
       module
     }
 
+    def apply(path: String): AnyRef = module(path).getExports
+
     def impl[T](path: String, t: Class[T]): T = {
       module(path)
-      val locals = engine.createBindings()
-      engine.eval("var __exports = module.exports;", locals)
-      val inv = engine.asInstanceOf[Invocable]
-      inv.getInterface(locals.get("__exports"), t)
+
+      context.eval("var __exports = module.exports;")
+      val inv = context.engine.asInstanceOf[Invocable]
+      inv.getInterface(context.locals.get("__exports"), t)
     }
 
     def resolve(path: String): String = _resolve(path)(_dir) map {_._2} getOrElse {
@@ -134,7 +151,8 @@ class Module(parent: Option[Module] = None, val id: String = "[root]")(implicit 
             case e => throw new RuntimeException(s"JSON parse error: $resolved", e)
           }).get
         case Ext(".js") | _ =>
-          engine.eval(Source.fromFile(resolved).bufferedReader(), module.context)
+          //engine.eval(Source.fromFile(resolved).bufferedReader(), module.context)
+          module.context.eval(Source.fromFile(resolved).bufferedReader())
       }
 
       self.children.add(module)
@@ -151,7 +169,8 @@ class Module(parent: Option[Module] = None, val id: String = "[root]")(implicit 
       val module = new Module(root, resolved)
       _core.put(resolved, module)
       val inputStream = getClass.getClassLoader.getResourceAsStream(s"lib/$resolved.js")
-      engine.eval(Source.fromInputStream(inputStream).bufferedReader(), module.context)
+      //engine.eval(Source.fromInputStream(inputStream).bufferedReader(), module.context)
+      module.context.eval(Source.fromInputStream(inputStream).bufferedReader())
       root.children.add(module)
       module._loaded = true
       module
