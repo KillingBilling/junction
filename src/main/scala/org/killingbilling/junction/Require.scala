@@ -13,15 +13,10 @@ trait Require {
   def apply(path: String): AnyRef = module(path).getExports
 }
 
-object Require extends Require {
+object Require {
 
-  private lazy val default: Require = forModule(new Module())
+  def apply(): Require = forModule(new Module())
 
   def forModule(module: Module): Require = module.getRequire
-
-  def getCache = default.getCache
-  def resolve(path: String) = default.resolve(path)
-  def module(path: String) = default.module(path)
-  def impl[T](path: String, t: Class[T]) = default.impl(path, t)
 
 }

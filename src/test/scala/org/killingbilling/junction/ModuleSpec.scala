@@ -13,8 +13,6 @@ import scala.compat.Platform
 
 object ModuleSpec {
 
-  val require = Require
-
   val workDir = Paths.get(".").toAbsolutePath.normalize()
   def resolvedPath(s: String) = workDir.resolve(s).normalize().toString
 
@@ -38,6 +36,7 @@ class ModuleSpec extends FreeSpec with Matchers {
   import ModuleSpec._
 
   "require.resolve(): " in {
+    val require = Require()
     require.resolve("lib/dummy") shouldBe resolvedPath("./node_modules/lib/dummy.js")
     require.resolve("./src/test/js/dumb.js") shouldBe resolvedPath("./src/test/js/dumb.js.js")
     require.resolve("./src/test/js/d") shouldBe resolvedPath("./src/test/js/d/lib/main.js")
@@ -45,6 +44,7 @@ class ModuleSpec extends FreeSpec with Matchers {
   }
 
   "require(): " in {
+    val require = Require()
     require("./src/test/js/dummy.txt") shouldBe jsObject(Map("dummyID" -> "dummy"))
     require("./src/test/js/someObj.json") shouldBe jsObject(Map("qq" -> "QQ", "n" -> (2.0: JDouble)))
     require("./src/test/js/someArr.json") shouldBe jsArray(List(4.0: JDouble, "abra", "cada", 2.0: JDouble, "bra"))
@@ -53,6 +53,7 @@ class ModuleSpec extends FreeSpec with Matchers {
   }
 
   "require() cycle" in {
+    val require = Require()
     val expectedOutput = """
                            |main starting
                            |a starting
@@ -69,6 +70,7 @@ class ModuleSpec extends FreeSpec with Matchers {
   }
 
   "process: " in {
+    val require = Require()
     val p = require("./src/test/js/process.js").asInstanceOf[JMap[String, AnyRef]].toMap
     p("noDeprecation") shouldBe false
     p("throwDeprecation") shouldBe true
@@ -76,6 +78,7 @@ class ModuleSpec extends FreeSpec with Matchers {
   }
 
   "process.stdout: " in {
+    val require = Require()
     out.reset()
     require("./src/test/js/writeHello.js")
     out.toString(Platform.defaultCharsetName) shouldBe "HELLO!"
@@ -86,14 +89,24 @@ class ModuleSpec extends FreeSpec with Matchers {
   }
 
   "console.log" in {
+    val require = Require()
     out.reset()
     require("./src/test/js/logHello.js")
     out.toString(Platform.defaultCharsetName) shouldBe "LOGGING HELLO!\n"
   }
 
   "Buffer: " in {
+    val require = Require()
     val a = require("./src/test/js/ass.js").asInstanceOf[JMap[String, AnyRef]].toMap
     a("isBuffer") shouldBe false
+  }
+
+  "require.impl()" in {
+    val require = Require()
+    val acc: ServiceAccount = require.impl("./src/test/js/acc.js", classOf[ServiceAccount])
+
+    acc.aggr(1, 2) shouldBe 3
+    acc.init(1) shouldBe 1
   }
 
   "plain JS - impl interface" in {
@@ -132,13 +145,6 @@ class ModuleSpec extends FreeSpec with Matchers {
     js.eval("var __exports = module.exports;", locals)
     val inv = js.asInstanceOf[Invocable]
     val acc = inv.getInterface(locals.get("__exports"), classOf[ServiceAccount])
-
-    acc.aggr(1, 2) shouldBe 3
-    acc.init(1) shouldBe 1
-  }
-
-  "require.impl()" in {
-    val acc: ServiceAccount = require.impl("./src/test/js/acc.js", classOf[ServiceAccount])
 
     acc.aggr(1, 2) shouldBe 3
     acc.init(1) shouldBe 1
