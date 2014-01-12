@@ -13,15 +13,9 @@ import javax.script.Invocable
 
 object ModuleSpec {
 
-  implicit val js = newEngine()
-
-  assert(js != null, "ENGINE SHOULD NOT BE NULL")
-
-  val rootModule = new Module()
-  val require = rootModule.getRequire
+  val require = Require
 
   val workDir = Paths.get(".").toAbsolutePath.normalize()
-
   def resolvedPath(s: String) = workDir.resolve(s).normalize().toString
 
   def jsObject(o: Map[String, AnyRef]): JMap[String, AnyRef] = o
@@ -31,6 +25,7 @@ object ModuleSpec {
   val err = new ByteArrayOutputStream()
   Console.setOut(out)
   Console.setErr(err)
+
 }
 
 class ModuleSpec extends FreeSpec with Matchers {
@@ -98,6 +93,7 @@ class ModuleSpec extends FreeSpec with Matchers {
   }
 
   "use exported function from Java" in {
+    val js = newEngine()
     val f = require("./src/test/js/d/lib/sub.js")
     val inv = js.asInstanceOf[Invocable]
     val jf = inv.getInterface(f, classOf[JFunction[String, String]]) // FIXME crashes here

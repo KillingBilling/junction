@@ -17,6 +17,4 @@ package object utils {
     sem.getEngineByName(name)
   }
 
-  def newRootModule(implicit engine: ScriptEngine) = new Module()
-
 }

@@ -13,11 +13,6 @@ import scala.util.parsing.json.JSON
 
 object Module {
 
-  trait Require {
-    def resolve(path: String): String
-    def getCache: JMap[String, Module]
-  }
-
   def moduleContext(module: Module, rootContext: Option[ScriptContext] = None)
         (implicit engine: ScriptEngine): ScriptContext = {
 
