@@ -4,7 +4,7 @@ import java.io.File
 import java.util.function.{Function => JFunction}
 import java.util.{List => JList, ArrayList => JArrayList, Map => JMap, HashMap => JHashMap}
 import javax.script.ScriptContext._
-import javax.script.{ScriptContext, SimpleScriptContext, ScriptEngine}
+import javax.script.{Invocable, ScriptContext, SimpleScriptContext, ScriptEngine}
 import org.killingbilling.junction.utils._
 import scala.beans.BeanInfo
 import scala.io.Source
@@ -56,16 +56,22 @@ class Module(parent: Option[Module] = None, val id: String = "[root]")(implicit 
   def getExports: AnyRef = _exports
   def setExports(o: AnyRef) {_exports = o}
 
+  def invocable = {
+    val engine = newEngine()
+    engine.setContext(context)
+    engine.asInstanceOf[Invocable]
+  }
+
   private object _require extends JFunction[String, AnyRef] with Require {
 
-    def apply(path: String) = {
+    def module(path: String) = {
       val module = _resolve(path)(_dir) map {
         case (true, resolved) => Option(_core.get(resolved)) getOrElse _coreModule(resolved)
         case (false, resolved) => Option(_cache.get(resolved)) getOrElse _loadModule(resolved)
       } getOrElse {
         throw new RuntimeException(s"Error: Cannot find module '$path'")
       }
-      module._exports
+      module
     }
 
     def resolve(path: String): String = _resolve(path)(_dir) map {_._2} getOrElse {

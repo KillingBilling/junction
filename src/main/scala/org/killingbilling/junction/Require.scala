@@ -6,7 +6,8 @@ import org.killingbilling.junction.utils._
 trait Require {
   def resolve(path: String): String
   def getCache: JMap[String, Module]
-  def apply(path: String): AnyRef
+  def module(path: String): Module
+  def apply(path: String): AnyRef = module(path).getExports
 }
 
 object Require extends Require {
@@ -15,8 +16,7 @@ object Require extends Require {
 
   def getCache = default.getCache
   def resolve(path: String) = default.resolve(path)
-  def apply(path: String) = default.apply(path)
-
+  def module(path: String) = default.module(path)
 
   def forModule(module: Module): Require = module.getRequire
 

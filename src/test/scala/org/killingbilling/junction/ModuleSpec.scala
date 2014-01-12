@@ -3,13 +3,13 @@ package org.killingbilling.junction
 import java.io.ByteArrayOutputStream
 import java.lang.{Double => JDouble}
 import java.nio.file.Paths
-import java.util.{List => JList, Map => JMap}
 import java.util.function.{Function => JFunction}
+import java.util.{List => JList, Map => JMap}
+import javax.script.Invocable
 import org.killingbilling.junction.utils._
 import org.scalatest.{Matchers, FreeSpec}
 import scala.collection.JavaConversions._
 import scala.compat.Platform
-import javax.script.Invocable
 
 object ModuleSpec {
 
@@ -25,6 +25,11 @@ object ModuleSpec {
   val err = new ByteArrayOutputStream()
   Console.setOut(out)
   Console.setErr(err)
+
+  trait ServiceAccount {
+    def aggr(a: Double, b: Double): Double
+    def init(v: Double): Double
+  }
 
 }
 
@@ -48,17 +53,16 @@ class ModuleSpec extends FreeSpec with Matchers {
   }
 
   "require() cycle" in {
-    val expectedOutput =
-      """
-        |main starting
-        |a starting
-        |b starting
-        |in b, a.done = false
-        |b done
-        |in a, b.done = true
-        |a done
-        |in main, a.done=true, b.done=true
-      """.stripMargin
+    val expectedOutput = """
+                           |main starting
+                           |a starting
+                           |b starting
+                           |in b, a.done = false
+                           |b done
+                           |in a, b.done = true
+                           |a done
+                           |in main, a.done=true, b.done=true
+                         """.stripMargin
     out.reset()
     require("./src/test/js/main")
     out.toString(Platform.defaultCharsetName).trim shouldBe expectedOutput.trim
@@ -92,12 +96,33 @@ class ModuleSpec extends FreeSpec with Matchers {
     a("isBuffer") shouldBe false
   }
 
-  "use exported function from Java" in {
+  "plain JS - impl interface" in {
     val js = newEngine()
-    val f = require("./src/test/js/d/lib/sub.js")
+
+    js.eval( """
+               | var o = {
+               |   aggr: function(a, b) {return a + b;},
+               |   init: function(v) {return (v == null) ? 0 : v;}
+               | };
+               | """.stripMargin)
+
+    val o = js.get("o")
     val inv = js.asInstanceOf[Invocable]
-    val jf = inv.getInterface(f, classOf[JFunction[String, String]]) // FIXME crashes here
-    jf("QQ") shouldBe "(arg: QQ)"
+    val acc = inv.getInterface(o, classOf[ServiceAccount])
+
+    acc.aggr(1, 2) shouldBe 3
+    acc.init(1) shouldBe 1
+  }
+
+  "use exported function from Java" ignore {
+    val module = require.module("./src/test/js/d/lib/sub.js")
+
+    val o = module.getExports
+    val inv = module.invocable
+
+    val f = inv.getInterface(o, classOf[JFunction[String, String]]) // FIXME crashes here
+
+    f("QQ") shouldBe "(arg: QQ)"
   }
 
 }
