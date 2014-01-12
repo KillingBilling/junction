@@ -86,14 +86,13 @@ class Module(parent: Option[Module] = None, val id: String = "[root]")(implicit 
 
   private object _require extends JFunction[String, AnyRef] with Require {
 
-    protected def moduleWithObj[T](path: String, t: Option[Class[T]]): WithObj[T] = {
-      val moduleWithObj: WithObj[T] = _resolve(path)(_dir) map {
-        case (true, resolved) => Option(_core.get(resolved)) map {WithObj[T](_, None)} getOrElse _coreModule(resolved, t)
-        case (false, resolved) => Option(_cache.get(resolved)) map {WithObj[T](_, None)} getOrElse _loadModule(resolved, t)
-      } getOrElse {
-        throw new RuntimeException(s"Error: Cannot find module '$path'")
-      }
-      moduleWithObj
+    protected def moduleWithObj[T](path: String, t: Option[Class[T]]): WithObj[T] = _resolve(path)(_dir) map {
+      case (true, resolved) => Option(_core.get(resolved)) map {WithObj[T](_, None)} getOrElse
+          _coreModule(resolved, t)
+      case (false, resolved) => Option(_cache.get(resolved)) map {WithObj[T](_, None)} getOrElse
+          _loadModule(resolved, t)
+    } getOrElse {
+      throw new RuntimeException(s"Error: Cannot find module '$path'")
     }
 
     def apply(path: String): AnyRef = moduleWithObj(path, None).module.getExports
