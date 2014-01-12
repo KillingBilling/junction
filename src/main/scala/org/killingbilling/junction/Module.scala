@@ -96,7 +96,7 @@ class Module(parent: Option[Module] = None, val id: String = "[root]")(implicit 
 
     def apply(path: String): AnyRef = moduleWithObj(path, None).module.getExports
 
-    def impl[T <: Any](path: String, t: Class[T]): T = _impl(path, t).asInstanceOf[T]
+    def impl[T <: Any](path: String, t: Class[T]): T = _impl(resolve(path), t).asInstanceOf[T]
     private val _impl = Memo2[String, Class[_], Any](impl0)
 
     private def impl0(path: String, t: Class[_]): Any = moduleWithObj(path, t).obj getOrElse
