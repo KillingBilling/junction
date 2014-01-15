@@ -31,6 +31,9 @@ object ModuleSpec {
     def aggregates: JMap[String, Aggregate]
   }
   trait ServiceAccount extends Account
+  trait ServiceAccountFactory {
+    def instance(obj: AnyRef): ServiceAccount
+  }
 
 }
 
@@ -116,9 +119,10 @@ class ModuleSpec extends FreeSpec with Matchers {
     agg2.init(4) shouldBe 1
   }
 
-  "require.impl() - getter" ignore {
+  "impl non-trivial types" in {
     val require = Require()
-    val acc: ServiceAccount = require.impl("./src/test/js/acc.js", classOf[ServiceAccount])
+    val accFactory = require("ServiceAccountFactory").asInstanceOf[ServiceAccountFactory]
+    val acc = accFactory.instance(require("./src/test/js/acc.js"))
 
     val agg = acc.aggregates.get("prod")
     agg.aggr(3, 2) shouldBe 6

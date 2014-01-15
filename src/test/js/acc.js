@@ -7,6 +7,4 @@ var prod = {
   init: function(v) {return 1;}
 };
 
-exports.aggregates = function() {
-  return {sum: sum, prod: prod};
-};
+exports.aggregates = {sum: sum, prod: prod};
