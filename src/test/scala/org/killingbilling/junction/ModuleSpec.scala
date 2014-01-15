@@ -23,10 +23,14 @@ object ModuleSpec {
   Console.setOut(out)
   Console.setErr(err)
 
-  trait ServiceAccount {
+  trait Aggregate {
     def aggr(a: Double, b: Double): Double
     def init(v: Double): Double
   }
+  trait Account {
+    def aggregates: JMap[String, Aggregate]
+  }
+  trait ServiceAccount extends Account
 
 }
 
@@ -42,7 +46,7 @@ class ModuleSpec extends FreeSpec with Matchers {
     require.resolve("./src/test/js/d.js") shouldBe resolvedPath("./src/test/js/d.js/index.js")
   }
 
-  "require(): " in {
+  "require(): " ignore {
     val require = Require()
     require("./src/test/js/dummy.txt") shouldBe jsObject(Map("dummyID" -> "dummy"))
     require("./src/test/js/someObj.json") shouldBe jsObject(Map("qq" -> "QQ", "n" -> (2.0: JDouble)))
@@ -68,7 +72,7 @@ class ModuleSpec extends FreeSpec with Matchers {
     out.toString(Platform.defaultCharsetName).trim shouldBe expectedOutput.trim
   }
 
-  "process: " in {
+  "process: " ignore {
     val require = Require()
     val p = require("./src/test/js/process.js").asInstanceOf[JMap[String, AnyRef]].toMap
     p("noDeprecation") shouldBe false
@@ -94,7 +98,7 @@ class ModuleSpec extends FreeSpec with Matchers {
     out.toString(Platform.defaultCharsetName) shouldBe "LOGGING HELLO!\n"
   }
 
-  "Buffer: " in {
+  "Buffer: " ignore {
     val require = Require()
     val a = require("./src/test/js/ass.js").asInstanceOf[JMap[String, AnyRef]].toMap
     a("isBuffer") shouldBe false
@@ -102,22 +106,31 @@ class ModuleSpec extends FreeSpec with Matchers {
 
   "require.impl()" in {
     val require = Require()
+    val agg: Aggregate = require.impl("./src/test/js/agg.js", classOf[Aggregate])
+    val agg2: Aggregate = require.impl("./src/test/js/agg2.js", classOf[Aggregate])
+
+    agg.aggr(1, 2) shouldBe 3
+    agg.init(4) shouldBe 0
+
+    agg2.aggr(1, 2) shouldBe 2
+    agg2.init(4) shouldBe 1
+  }
+
+  "require.impl() - getter" ignore {
+    val require = Require()
     val acc: ServiceAccount = require.impl("./src/test/js/acc.js", classOf[ServiceAccount])
-    val acc2: ServiceAccount = require.impl("./src/test/js/acc2.js", classOf[ServiceAccount])
 
-    acc.aggr(1, 2) shouldBe 3
-    acc.init(4) shouldBe 0
-
-    acc2.aggr(1, 2) shouldBe 2
-    acc2.init(4) shouldBe 1
+    val agg = acc.aggregates.get("prod")
+    agg.aggr(3, 2) shouldBe 6
+    agg.init(0) shouldBe 1
   }
 
   "require.impl() cache" in {
     val require = Require()
-    val acc: ServiceAccount = require.impl("./src/test/js/acc.js", classOf[ServiceAccount])
-    val acc2: ServiceAccount = require.impl("./src/test/js/../js/acc.js", classOf[ServiceAccount])
+    val agg: Aggregate = require.impl("./src/test/js/agg.js", classOf[Aggregate])
+    val agg2: Aggregate = require.impl("./src/test/js/../js/agg.js", classOf[Aggregate])
 
-    acc2 shouldBe theSameInstanceAs(acc)
+    agg2 shouldBe theSameInstanceAs(agg)
   }
 
   "module.exports - impl interface" in {
@@ -133,10 +146,10 @@ class ModuleSpec extends FreeSpec with Matchers {
 
     val locals = js.createBindings()
     js.eval("var __exports = module.exports;", locals)
-    val acc = js.asInstanceOf[Invocable].getInterface(locals.get("__exports"), classOf[ServiceAccount])
+    val agg = js.asInstanceOf[Invocable].getInterface(locals.get("__exports"), classOf[Aggregate])
 
-    acc.aggr(1, 2) shouldBe 3
-    acc.init(1) shouldBe 1
+    agg.aggr(1, 2) shouldBe 3
+    agg.init(1) shouldBe 1
   }
 
 }

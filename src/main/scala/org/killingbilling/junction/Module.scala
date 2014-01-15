@@ -27,11 +27,13 @@ object Module {
 
     def eval[T](source: Reader, tOpt: Option[Class[T]]): Option[T] = {
       val old = swapGlobals(globals)
+
+      engine.eval("module.exports = {}; exports = module.exports;", locals)
       engine.eval(source, locals)
       
       val obj = tOpt map {t =>
-        engine.eval("var __exports = module.exports;", locals)
-        engine.asInstanceOf[Invocable].getInterface(locals.get("__exports"), t)
+        engine.eval("exports = module.exports;", locals)
+        engine.asInstanceOf[Invocable].getInterface(locals.get("exports"), t)
       } flatMap {v => Option(v)}
       
       swapGlobals(old)
@@ -55,15 +57,13 @@ object Module {
     val g = context.globals
     g.put("global", rootContext.globals) // global
     g.put("process", Process) // global
-    val console = module._require("console")
-    g.put("console", console) // global
+    g.put("console", module._require("console")) // global
     g.put("Buffer", Buffer) // global
 
     g.put("require", module._require)
     g.put("__filename", module.filename)
     g.put("__dirname", module._dir.getPath)
     g.put("module", module)
-    g.put("exports", module._exports)
   }
 
 }
@@ -79,7 +79,7 @@ class Module(parent: Option[Module] = None, val id: String = "[root]")(implicit 
   private lazy val context: Context =
     parent map {_ => moduleContext(self, root.context)} getOrElse moduleContext(self)
 
-  private var _exports: AnyRef = new JHashMap()
+  private var _exports: AnyRef = _
   def getExports: AnyRef = _exports
   def setExports(o: AnyRef) {_exports = o}
 
