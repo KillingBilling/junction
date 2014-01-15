@@ -14,8 +14,6 @@ trait Require {
 
 object Require {
 
-  def apply(): Require = forModule(new Module())
-
-  def forModule(module: Module): Require = module.getRequire
+  def apply(): Require = new Module().getRequire
 
 }
