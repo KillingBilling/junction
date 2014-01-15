@@ -15,8 +15,8 @@ object ModuleSpec {
   val workDir = Paths.get(".").toAbsolutePath.normalize()
   def resolvedPath(s: String) = workDir.resolve(s).normalize().toString
 
-  def jsObject(o: Map[String, AnyRef]): JMap[String, AnyRef] = o
-  def jsArray(o: List[AnyRef]): JList[AnyRef] = o
+  def jsObj(o: Map[String, AnyRef]): JMap[String, AnyRef] = o
+  def jsArr(o: List[AnyRef]): JList[AnyRef] = o
 
   val out = new ByteArrayOutputStream()
   val err = new ByteArrayOutputStream()
@@ -34,6 +34,10 @@ object ModuleSpec {
   trait ServiceAccountFactory {
     def instance(obj: AnyRef): ServiceAccount
   }
+  trait WrapO {
+    def map[K,V](o: AnyRef): JMap[K,V]
+    def list[T](o: AnyRef): JList[T]
+  }
 
 }
 
@@ -49,11 +53,14 @@ class ModuleSpec extends FreeSpec with Matchers {
     require.resolve("./src/test/js/d.js") shouldBe resolvedPath("./src/test/js/d.js/index.js")
   }
 
-  "require(): " ignore {
+  "require(): " in {
     val require = Require()
-    require("./src/test/js/dummy.txt") shouldBe jsObject(Map("dummyID" -> "dummy"))
-    require("./src/test/js/someObj.json") shouldBe jsObject(Map("qq" -> "QQ", "n" -> (2.0: JDouble)))
-    require("./src/test/js/someArr.json") shouldBe jsArray(List(4.0: JDouble, "abra", "cada", 2.0: JDouble, "bra"))
+    val wrapo = require.impl("wrap-o", classOf[WrapO])
+    val wm = wrapo.map[String, AnyRef] _
+    val wl = wrapo.list[AnyRef] _
+    wm(require("./src/test/js/dummy.txt")) shouldBe jsObj(Map("dummyID" -> "dummy"))
+    wm(require("./src/test/js/someObj.json")) shouldBe jsObj(Map("qq" -> "QQ", "n" -> (2.0: JDouble)))
+    wl(require("./src/test/js/someArr.json")) shouldBe jsArr(List(4.0: JDouble, "abra", "cada", 2.0: JDouble, "bra"))
     require("./src/test/js/d") shouldBe "(arg: QQ)"
     require("./src/test/js/d.js") shouldBe "(arg: QQ.js)"
   }
