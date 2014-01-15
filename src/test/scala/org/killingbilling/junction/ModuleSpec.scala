@@ -45,7 +45,7 @@ class ModuleSpec extends FreeSpec with Matchers {
 
   import ModuleSpec._
 
-  "require.resolve(): " in {
+  "require.resolve()" in {
     val require = Require()
     require.resolve("lib/dummy") shouldBe resolvedPath("./node_modules/lib/dummy.js")
     require.resolve("./src/test/js/dumb.js") shouldBe resolvedPath("./src/test/js/dumb.js.js")
@@ -53,7 +53,7 @@ class ModuleSpec extends FreeSpec with Matchers {
     require.resolve("./src/test/js/d.js") shouldBe resolvedPath("./src/test/js/d.js/index.js")
   }
 
-  "require(): " in {
+  "require()" in {
     val require = Require()
     val wrapo = require.impl("wrap-o", classOf[WrapO])
     val wm = wrapo.map[String, AnyRef] _
@@ -82,15 +82,16 @@ class ModuleSpec extends FreeSpec with Matchers {
     out.toString(Platform.defaultCharsetName).trim shouldBe expectedOutput.trim
   }
 
-  "process: " ignore {
+  "process" in {
     val require = Require()
-    val p = require("./src/test/js/process.js").asInstanceOf[JMap[String, AnyRef]].toMap
+    val wrapo = require.impl("wrap-o", classOf[WrapO])
+    val p = wrapo.map[String, AnyRef](require("./src/test/js/process.js")).toMap
     p("noDeprecation") shouldBe false
     p("throwDeprecation") shouldBe true
     p("traceDeprecation") shouldBe true
   }
 
-  "process.stdout: " in {
+  "process.stdout" in {
     val require = Require()
     out.reset()
     require("./src/test/js/writeHello.js")
@@ -108,9 +109,10 @@ class ModuleSpec extends FreeSpec with Matchers {
     out.toString(Platform.defaultCharsetName) shouldBe "LOGGING HELLO!\n"
   }
 
-  "Buffer: " ignore {
+  "Buffer" in {
     val require = Require()
-    val a = require("./src/test/js/ass.js").asInstanceOf[JMap[String, AnyRef]].toMap
+    val wrapo = require.impl("wrap-o", classOf[WrapO])
+    val a = wrapo.map[String, AnyRef](require("./src/test/js/ass.js")).toMap
     a("isBuffer") shouldBe false
   }
 
