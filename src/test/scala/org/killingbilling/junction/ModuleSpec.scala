@@ -130,7 +130,7 @@ class ModuleSpec extends FreeSpec with Matchers {
 
   "impl non-trivial types" in {
     val require = Require()
-    val accFactory = require("lib/ServiceAccountFactory").asInstanceOf[ServiceAccountFactory]
+    val accFactory = require("lib/ServiceAccountFactory.js").asInstanceOf[ServiceAccountFactory]
     val acc = accFactory.instance(require("./src/test/js/acc.js"))
 
     val agg = acc.aggregates.get("prod")
