@@ -114,7 +114,7 @@ class Module(val id: String = "[root]", parent: Option[Module] = None)
       throw new RuntimeException(s"Error: Cannot find module '$path'")
     }
 
-    private def _resolve(path: String)(dir: File): Option[(Boolean, String)] = {
+    private def _resolve(path: String)(dir: File): Option[(Boolean, String)] =
       if (path.startsWith(".") || path.startsWith("/")) {
         val file = new File(path)
         val absPath = (if (file.isAbsolute) file else new File(dir, path)).getCanonicalPath
@@ -122,8 +122,7 @@ class Module(val id: String = "[root]", parent: Option[Module] = None)
           case f if f.isFile => Some(false -> f.getPath)
           case f if f.isDirectory => resolveDir(f)
         }).flatten
-      } else if (isCore(path)) (true, path) else inClasspath(path) orElse inNodeModules(path)(dir)
-    }
+      } else if (isCore(path)) Some(true -> path) else inNodeModules(path)(dir) orElse inClasspath(path)
 
     private def resolveDir(dir: File): Option[(Boolean, String)] = {
       val main = Try {
