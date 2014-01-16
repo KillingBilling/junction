@@ -7,7 +7,7 @@ import javax.script.ScriptContext._
 import javax.script._
 import org.killingbilling.junction.utils._
 import scala.beans.BeanInfo
-import scala.io.Source
+import scala.io.{BufferedSource, Source}
 import scala.util.Try
 import scala.util.parsing.json.JSON
 
@@ -67,7 +67,7 @@ object Module {
 
   case class Singleton(root: Module, engine: ScriptEngine) {
     private val comp = engine.asInstanceOf[Compilable]
-    
+
     val initExports: CompiledScript = comp.compile("'use strict'; module.exports = {};")
     val getExports: CompiledScript = comp.compile("'use strict'; module.exports")
   }
@@ -122,7 +122,7 @@ class Module(val id: String = "[root]", parent: Option[Module] = None)
           case f if f.isFile => Some(false -> f.getPath)
           case f if f.isDirectory => resolveDir(f)
         }).flatten
-      } else if (isCore(path)) (true, path) else inNodeModules(path)(dir)
+      } else if (isCore(path)) (true, path) else inClasspath(path) orElse inNodeModules(path)(dir)
     }
 
     private def resolveDir(dir: File): Option[(Boolean, String)] = {
@@ -132,6 +132,11 @@ class Module(val id: String = "[root]", parent: Option[Module] = None)
       }.toOption getOrElse "./index.js"
       _resolve(main)(dir)
     }
+
+    private def inClasspath(path: String): Option[(Boolean, String)] =
+      List("", ".js", ".json") map {path + _} collectFirst {
+        case p if getClass.getClassLoader.getResource(p) != null => false -> p
+      }
 
     private def inNodeModules(path: String)(dir: File): Option[(Boolean, String)] = {
       if (dir == null) None
@@ -143,6 +148,10 @@ class Module(val id: String = "[root]", parent: Option[Module] = None)
 
     def getCache: JMap[String, Module] = _cache // global, map: id -> module
 
+    private def source(resolved: String): BufferedSource =
+      if (resolved.startsWith(".") || resolved.startsWith("/")) Source.fromFile(resolved)
+      else Source.fromInputStream(getClass.getClassLoader.getResourceAsStream(resolved))
+
     private def _loadModule[T](resolved: String, t: Option[Class[T]]): WithObj[T] = {
       val module = new Module(resolved, self)
       _cache.put(resolved, module)
@@ -152,7 +161,7 @@ class Module(val id: String = "[root]", parent: Option[Module] = None)
         case Ext(".json") =>
           module._exports = (Try {
             import scala.collection.JavaConversions._
-            JSON.parseFull(Source.fromFile(resolved).mkString).get match {
+            JSON.parseFull(source(resolved).mkString).get match {
               case a: Map[String, AnyRef] => a: JMap[String, AnyRef]
               case a: List[AnyRef] => a: JList[AnyRef]
             }
@@ -161,7 +170,7 @@ class Module(val id: String = "[root]", parent: Option[Module] = None)
           }).get
           None
         case Ext(".js") | _ =>
-          module.context.eval(Source.fromFile(resolved).bufferedReader(), t)
+          module.context.eval(source(resolved).bufferedReader(), t)
       }
 
       self.children.add(module)
