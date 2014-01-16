@@ -17,9 +17,7 @@ object Module {
 
   case class Context(module: Module, rootContext: Option[Context] = None) {
 
-    private val engine = module.engine
-
-    val locals = engine.createBindings()
+    val locals = module.engine.createBindings()
     val globals = createGlobals()
 
     globals.put("global", (rootContext getOrElse this).globals)
@@ -38,8 +36,8 @@ object Module {
     }
 
     private def swapGlobals(newGlobals: Bindings): Bindings = {
-      val oldGlobals = engine.getBindings(GLOBAL_SCOPE)
-      engine.setBindings(newGlobals, GLOBAL_SCOPE)
+      val oldGlobals = module.engine.getBindings(GLOBAL_SCOPE)
+      module.engine.setBindings(newGlobals, GLOBAL_SCOPE)
       oldGlobals
     }
 
@@ -47,14 +45,14 @@ object Module {
       val old = swapGlobals(globals)
 
       try {
-        engine.eval("'use strict'; module.exports = {};", locals)
-        val exports = engine.eval("'use strict'; module.exports", locals)
+        module.engine.eval("'use strict'; module.exports = {};", locals)
+        val exports = module.engine.eval("'use strict'; module.exports", locals)
         globals.put("exports", exports)
-        engine.eval(source, locals)
+        module.engine.eval(source, locals)
 
         val obj = tOpt map {t =>
-          val exports = engine.eval("'use strict'; module.exports", locals)
-          engine.asInstanceOf[Invocable].getInterface(exports, t)
+          val exports = module.engine.eval("'use strict'; module.exports", locals)
+          module.engine.asInstanceOf[Invocable].getInterface(exports, t)
         } flatMap {v => Option(v)}
 
         obj
@@ -74,7 +72,7 @@ class Module(parent: Option[Module] = None, val id: String = "[root]")
 
   import Module._
 
-  private implicit val engine: ScriptEngine = parent map {_.engine} getOrElse createEngine()
+  private val engine: ScriptEngine = parent map {_.engine} getOrElse createEngine()
 
   private val root: Module = parent map {_.root} getOrElse self
   private lazy val context: Context = parent map {_ => Context(self, root.context)} getOrElse Context(self)
