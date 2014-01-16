@@ -75,7 +75,7 @@ object Module {
 }
 
 @BeanInfo
-class Module(parent: Option[Module] = None, val id: String = "[root]")
+class Module(val id: String = "[root]", parent: Option[Module] = None)
       (implicit createEngine: () => ScriptEngine) {self =>
 
   import Module._
@@ -144,7 +144,7 @@ class Module(parent: Option[Module] = None, val id: String = "[root]")
     def getCache: JMap[String, Module] = _cache // global, map: id -> module
 
     private def _loadModule[T](resolved: String, t: Option[Class[T]]): WithObj[T] = {
-      val module = new Module(self, resolved)
+      val module = new Module(resolved, self)
       _cache.put(resolved, module)
 
       val Ext = """.*(\.\w+)$""".r
@@ -175,7 +175,7 @@ class Module(parent: Option[Module] = None, val id: String = "[root]")
       ).contains(path)
 
     private def _coreModule[T](resolved: String, t: Option[Class[T]]): WithObj[T] = {
-      val module = new Module(root, resolved)
+      val module = new Module(resolved, root)
       _core.put(resolved, module)
       val inputStream = getClass.getClassLoader.getResourceAsStream(s"lib/$resolved.js")
       val obj: Option[T] = module.context.eval(Source.fromInputStream(inputStream).bufferedReader(), t)
