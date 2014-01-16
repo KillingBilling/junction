@@ -151,6 +151,7 @@ class ModuleSpec extends FreeSpec with Matchers {
     js.getContext.getBindings(ScriptContext.GLOBAL_SCOPE).put("module", new Module())
 
     js.eval( """
+               | 'use strict';
                | module.exports = {
                |   aggr: function(a, b) {return a + b;},
                |   init: function(v) {return (v == null) ? 0 : v;}
@@ -158,8 +159,8 @@ class ModuleSpec extends FreeSpec with Matchers {
                | """.stripMargin)
 
     val locals = js.createBindings()
-    js.eval("var __exports = module.exports;", locals)
-    val agg = js.asInstanceOf[Invocable].getInterface(locals.get("__exports"), classOf[Aggregate])
+    val obj = js.eval("'use strict'; module.exports", locals)
+    val agg = js.asInstanceOf[Invocable].getInterface(obj, classOf[Aggregate])
 
     agg.aggr(1, 2) shouldBe 3
     agg.init(1) shouldBe 1

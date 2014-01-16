@@ -1,3 +1,5 @@
+'use strict';
+
 console.log('b starting');
 exports.done = false;
 var a = require('./a.js');

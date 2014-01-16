@@ -1,3 +1,5 @@
+'use strict';
+
 var Aggregate = Java.type("org.killingbilling.junction.ModuleSpec.Aggregate");
 var ServiceAccount = Java.type("org.killingbilling.junction.ModuleSpec.ServiceAccount");
 var ServiceAccountFactory = Java.type("org.killingbilling.junction.ModuleSpec.ServiceAccountFactory");
