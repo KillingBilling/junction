@@ -4,7 +4,7 @@ import java.io.{Reader, File}
 import java.util.function.{Function => JFunction}
 import java.util.{List => JList, ArrayList => JArrayList, Map => JMap, HashMap => JHashMap}
 import javax.script.ScriptContext._
-import javax.script.{Bindings, Invocable, ScriptEngine}
+import javax.script._
 import org.killingbilling.junction.utils._
 import scala.beans.BeanInfo
 import scala.io.Source
@@ -15,12 +15,12 @@ object Module {
 
   case class WithObj[T](module: Module, obj: Option[T])
 
-  case class Context(module: Module, rootContext: Option[Context] = None) {
+  case class Context(module: Module) {
 
     val locals = module.engine.createBindings()
     val globals = createGlobals()
 
-    globals.put("global", (rootContext getOrElse this).globals)
+    globals.put("global", if (module eq module.root) globals else module.root.context.globals)
 
     private def createGlobals(): Bindings = {
       val g = module.engine.createBindings()
@@ -45,13 +45,14 @@ object Module {
       val old = swapGlobals(globals)
 
       try {
-        module.engine.eval("'use strict'; module.exports = {};", locals)
-        val exports = module.engine.eval("'use strict'; module.exports", locals)
+        module.singleton.initExports.eval(locals)
+        val exports = module.singleton.getExports.eval(locals)
         globals.put("exports", exports)
-        module.engine.eval(source, locals)
+
+        module.engine.eval(source, locals) // run!
 
         val obj = tOpt map {t =>
-          val exports = module.engine.eval("'use strict'; module.exports", locals)
+          val exports = module.singleton.getExports.eval(locals)
           module.engine.asInstanceOf[Invocable].getInterface(exports, t)
         } flatMap {v => Option(v)}
 
@@ -64,6 +65,13 @@ object Module {
 
   }
 
+  case class Singleton(root: Module, engine: ScriptEngine) {
+    private val comp = engine.asInstanceOf[Compilable]
+    
+    val initExports: CompiledScript = comp.compile("'use strict'; module.exports = {};")
+    val getExports: CompiledScript = comp.compile("'use strict'; module.exports")
+  }
+
 }
 
 @BeanInfo
@@ -72,10 +80,12 @@ class Module(parent: Option[Module] = None, val id: String = "[root]")
 
   import Module._
 
-  private val engine: ScriptEngine = parent map {_.engine} getOrElse createEngine()
+  private val singleton: Singleton = parent map {_.singleton} getOrElse Singleton(self, createEngine())
 
-  private val root: Module = parent map {_.root} getOrElse self
-  private lazy val context: Context = parent map {_ => Context(self, root.context)} getOrElse Context(self)
+  private val root = singleton.root
+  private val engine = singleton.engine
+
+  private lazy val context = Context(self)
 
   private var _exports: AnyRef = _
   def getExports: AnyRef = _exports
