@@ -15,9 +15,27 @@ object Module {
 
   case class WithObj[T](module: Module, obj: Option[T])
 
-  case class Context(module: Module, globals: Bindings, locals: Bindings) {
+  case class Context(module: Module, rootContext: Option[Context] = None) {
 
-    private lazy val engine = module.engine
+    private val engine = module.engine
+
+    val locals = engine.createBindings()
+    val globals = createGlobals()
+
+    globals.put("global", (rootContext getOrElse this).globals)
+
+    private def createGlobals(): Bindings = {
+      val g = module.engine.createBindings()
+      g.put("process", Process) // global
+      g.put("console", module._require("console")) // global
+      g.put("Buffer", Buffer) // global
+
+      g.put("require", module._require)
+      g.put("__filename", module.filename)
+      g.put("__dirname", module._dir.getPath)
+      g.put("module", module)
+      g
+    }
 
     private def swapGlobals(newGlobals: Bindings): Bindings = {
       val oldGlobals = engine.getBindings(GLOBAL_SCOPE)
@@ -40,36 +58,12 @@ object Module {
         } flatMap {v => Option(v)}
 
         obj
-
       } finally {
 
         swapGlobals(old)
       }
     }
 
-  }
-
-  object Context {
-    def apply(module: Module): Context = Context(module, module.engine.createBindings(), module.engine.createBindings())
-  }
-
-  def moduleContext(module: Module, rootContext: Option[Context] = None): Context = {
-    val context = Context(module)
-    initGlobals(module, context, rootContext getOrElse context)
-    context
-  }
-
-  private def initGlobals(module: Module, context: Context, rootContext: Context) {
-    val g = context.globals
-    g.put("global", rootContext.globals) // global
-    g.put("process", Process) // global
-    g.put("console", module._require("console")) // global
-    g.put("Buffer", Buffer) // global
-
-    g.put("require", module._require)
-    g.put("__filename", module.filename)
-    g.put("__dirname", module._dir.getPath)
-    g.put("module", module)
   }
 
 }
@@ -80,11 +74,10 @@ class Module(parent: Option[Module] = None, val id: String = "[root]")
 
   import Module._
 
-  private lazy implicit val engine: ScriptEngine = parent map {_.engine} getOrElse createEngine()
+  private implicit val engine: ScriptEngine = parent map {_.engine} getOrElse createEngine()
 
-  private lazy val root: Module = parent map {_.root} getOrElse self
-  private lazy val context: Context =
-    parent map {_ => moduleContext(self, root.context)} getOrElse moduleContext(self)
+  private val root: Module = parent map {_.root} getOrElse self
+  private lazy val context: Context = parent map {_ => Context(self, root.context)} getOrElse Context(self)
 
   private var _exports: AnyRef = _
   def getExports: AnyRef = _exports
