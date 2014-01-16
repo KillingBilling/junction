@@ -14,10 +14,10 @@ import scala.util.parsing.json.JSON
 object Module {
 
   case class WithObj[T](module: Module, obj: Option[T])
-  
-  case class Context(engine: ScriptEngine, globals: Bindings, locals: Bindings) {
 
-    def createBindings() = engine.createBindings()
+  case class Context(module: Module, globals: Bindings, locals: Bindings) {
+
+    private lazy val engine = module.engine
 
     private def swapGlobals(newGlobals: Bindings): Bindings = {
       val oldGlobals = engine.getBindings(GLOBAL_SCOPE)
@@ -28,27 +28,33 @@ object Module {
     def eval[T](source: Reader, tOpt: Option[Class[T]]): Option[T] = {
       val old = swapGlobals(globals)
 
-      engine.eval("module.exports = {}; exports = module.exports;", locals)
-      engine.eval(source, locals)
-      
-      val obj = tOpt map {t =>
-        engine.eval("exports = module.exports;", locals)
-        engine.asInstanceOf[Invocable].getInterface(locals.get("exports"), t)
-      } flatMap {v => Option(v)}
-      
-      swapGlobals(old)
-      
-      obj
+      try {
+        engine.eval("'use strict'; module.exports = {};", locals)
+        val exports = engine.eval("'use strict'; module.exports", locals)
+        globals.put("exports", exports)
+        engine.eval(source, locals)
+
+        val obj = tOpt map {t =>
+          val exports = engine.eval("'use strict'; module.exports", locals)
+          engine.asInstanceOf[Invocable].getInterface(exports, t)
+        } flatMap {v => Option(v)}
+
+        obj
+
+      } finally {
+
+        swapGlobals(old)
+      }
     }
 
   }
 
   object Context {
-    def apply(engine: ScriptEngine): Context = Context(engine, engine.createBindings(), engine.createBindings())
+    def apply(module: Module): Context = Context(module, module.engine.createBindings(), module.engine.createBindings())
   }
 
-  def moduleContext(module: Module, rootContext: Option[Context] = None)(implicit engine: ScriptEngine): Context = {
-    val context = Context(engine)
+  def moduleContext(module: Module, rootContext: Option[Context] = None): Context = {
+    val context = Context(module)
     initGlobals(module, context, rootContext getOrElse context)
     context
   }
@@ -69,7 +75,8 @@ object Module {
 }
 
 @BeanInfo
-class Module(parent: Option[Module] = None, val id: String = "[root]")(implicit createEngine: () => ScriptEngine) {self =>
+class Module(parent: Option[Module] = None, val id: String = "[root]")
+      (implicit createEngine: () => ScriptEngine) {self =>
 
   import Module._
 
