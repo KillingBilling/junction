@@ -128,7 +128,7 @@ class Module(val id: String = "[root]", parent: Option[Module] = None)
       val main = Try {
         val opt = JSON.parseFull(Source.fromFile(new File(dir, "package.json")).mkString)
         opt.get.asInstanceOf[Map[String, String]]("main")
-      }.toOption getOrElse "./index.js"
+      }.toOption map {"./" + _} getOrElse "./index.js"
       _resolve(main)(dir)
     }
 
